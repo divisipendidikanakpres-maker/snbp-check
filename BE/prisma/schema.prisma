@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(uuid())
+  fullName  String
+  phone     String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Universitas {
+  id              String   @id @default(uuid())
+  namaUniversitas String
+  singkatan       String
+  provinsi        String
+  jumlahProdi     Int      @default(0)
+  nilaiRataRata   Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("universitas")
+}
+
+model Sekolah {
+  id          String   @id @default(uuid())
+  namaSekolah String
+  akreditasi  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("sekolah")
+}

@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:latest
+    container_name: snbp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: snbp
+      POSTGRES_PASSWORD: snbp_password
+      POSTGRES_DB: snbp
+    ports:
+      - "5432:5432"
+    volumes:
+      - snbp_pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U snbp -d snbp"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - snbp-net
+
+  api:
+    build:
+      context: ./BE
+      dockerfile: Dockerfile
+    container_name: snbp
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "postgresql://snbp:snbp_password@db:5432/snbp?schema=public"
+      JWT_SECRET: "dev-only-secret-change-in-production-please"
+      PORT: 4000
+      CLIENT_ORIGIN: "http://localhost:3000"
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - snbp-net
+
+networks:
+  snbp-net:
+    driver: bridge
+
+volumes:
+  snbp_pgdata:
