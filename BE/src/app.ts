@@ -9,9 +9,15 @@ import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 
 const app = express();
 
+const allowedOrigins = [
+  process.env.CLIENT_ORIGIN,
+  'https://snbp-check.vercel.app',
+  'http://localhost:3000'
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN,
+    origin: allowedOrigins,
     credentials: true,
   })
 );
