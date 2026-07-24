@@ -12,11 +12,21 @@ export interface UpdateRolePayload {
   role: "USER" | "ADMIN";
 }
 
+export interface UpdateUserPayload {
+  fullName: string;
+  email: string;
+  password?: string;
+}
+
 export function useUsers() {
   const { get, put, del } = useApi();
 
   async function list() {
     return get<{ data: User[] }>("/users");
+  }
+
+  async function update(id: string, payload: UpdateUserPayload) {
+    return put<{ message: string; data: User }>(`/users/${id}`, payload);
   }
 
   async function updateRole(id: string, payload: UpdateRolePayload) {
@@ -30,5 +40,5 @@ export function useUsers() {
     return del<{ message: string }>(`/users/${id}`);
   }
 
-  return { list, updateRole, remove };
+  return { list, update, updateRole, remove };
 }

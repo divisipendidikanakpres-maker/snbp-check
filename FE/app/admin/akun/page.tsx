@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useUsers, type User } from "@/hooks/useUsers";
 import { useAuth } from "@/hooks/useAuth";
+import type { ApiError } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import {
   Table,
   TableBody,
@@ -27,14 +36,27 @@ import {
   AlertDialogDescription,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function AkunPage() {
-  const { list, updateRole, remove } = useUsers();
+  const { list, update, updateRole, remove } = useUsers();
   const { me } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [currentUserId, setCurrentUserId] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  const [editing, setEditing] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState({ fullName: "", email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -59,6 +81,32 @@ export default function AkunPage() {
       setDeleting(null);
     } catch (err) {
       alert("Gagal menghapus user");
+    }
+  };
+
+  const openEdit = (user: User) => {
+    setEditing(user);
+    setEditForm({ fullName: user.fullName, email: user.email, password: "" });
+    setShowPassword(false);
+    setEditError(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editing) return;
+    setEditError(null);
+    setSaving(true);
+    try {
+      const res = await update(editing.id, {
+        fullName: editForm.fullName,
+        email: editForm.email,
+        ...(editForm.password ? { password: editForm.password } : {}),
+      });
+      setUsers(users.map((u) => (u.id === editing.id ? res.data : u)));
+      setEditing(null);
+    } catch (err) {
+      setEditError((err as ApiError).message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -104,10 +152,15 @@ export default function AkunPage() {
                     </Select>
                   )}
                 </TableCell>
-                <TableCell>
-                  {currentUserId === user.id ? (
-                    <span className="text-xs text-foreground/50">-</span>
-                  ) : (
+                <TableCell className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openEdit(user)}
+                  >
+                    Edit
+                  </Button>
+                  {currentUserId !== user.id && (
                     <Button
                       variant="destructive"
                       size="sm"
@@ -141,6 +194,81 @@ export default function AkunPage() {
           </div>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Akun</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-fullName">Nama</Label>
+              <InputGroup>
+                <InputGroupInput
+                  id="edit-fullName"
+                  value={editForm.fullName}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, fullName: e.target.value }))
+                  }
+                />
+              </InputGroup>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-email">Email</Label>
+              <InputGroup>
+                <InputGroupInput
+                  id="edit-email"
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, email: e.target.value }))
+                  }
+                />
+              </InputGroup>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-password">Password Baru (opsional)</Label>
+              <InputGroup>
+                <InputGroupInput
+                  id="edit-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Kosongkan jika tidak diganti"
+                  value={editForm.password}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, password: e.target.value }))
+                  }
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    type="button"
+                    size="icon-xs"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                  >
+                    {showPassword ? <EyeOff /> : <Eye />}
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
+            </div>
+
+            {editError && (
+              <p className="text-xs text-destructive">{editError}</p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>
+              Batal
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={saving}>
+              {saving ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

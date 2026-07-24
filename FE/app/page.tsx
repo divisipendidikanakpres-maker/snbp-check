@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import type { ApiError } from '@/hooks/useApi';
+import { PasswordInput } from '@/components/password-input';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -75,8 +76,7 @@ export default function LoginPage() {
             <label className='block text-sm font-medium text-gray-700 mb-2'>
               Password
             </label>
-            <input
-              type='password'
+            <PasswordInput
               name='password'
               value={form.password}
               onChange={handleChange}
