@@ -16,10 +16,12 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password wajib diisi.'),
 });
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  sameSite: 'lax' as const,
-  secure: false,
+  sameSite: isProduction ? ('none' as const) : ('lax' as const),
+  secure: isProduction,
   path: '/',
   maxAge: COOKIE_MAX_AGE_MS,
 };
