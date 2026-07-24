@@ -13,7 +13,7 @@ const allowedOrigins = [
   process.env.CLIENT_ORIGIN,
   'https://snbp-check.vercel.app',
   'http://localhost:3000'
-].filter(Boolean);
+].filter((origin): origin is string => Boolean(origin));
 
 app.use(
   cors({
