@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Rasionalisasi SNBP (Full Page)",
+  title: "Rasionalisasi SNBP",
   description:
     "Bandingkan nilai rapor dan TKA kamu dengan estimasi nilai minimum SNBP setiap jurusan.",
 };
