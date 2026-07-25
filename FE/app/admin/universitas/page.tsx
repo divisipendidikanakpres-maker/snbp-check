@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useUniversitas, type Universitas } from "@/hooks/useUniversitas";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,18 +29,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+const EMPTY_FORM = {
+  namaUniversitas: "",
+  singkatan: "",
+  provinsi: "",
+  ranking: "",
+};
+
 export default function UniversitasPage() {
+  const router = useRouter();
   const { list, create, update, remove } = useUniversitas();
   const [data, setData] = useState<Universitas[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    namaUniversitas: "",
-    singkatan: "",
-    provinsi: "",
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
 
   useEffect(() => {
     list().then((res) => {
@@ -49,16 +54,22 @@ export default function UniversitasPage() {
   }, []);
 
   const handleSave = async () => {
+    const payload = {
+      namaUniversitas: form.namaUniversitas,
+      singkatan: form.singkatan,
+      provinsi: form.provinsi,
+      ranking: form.ranking.trim() === "" ? null : Number(form.ranking),
+    };
     try {
       if (editingId) {
-        const res = await update(editingId, form);
+        const res = await update(editingId, payload);
         setData(data.map((d) => (d.id === editingId ? res.data : d)));
       } else {
-        const res = await create(form);
+        const res = await create(payload);
         setData([res.data, ...data]);
       }
       setDialogOpen(false);
-      setForm({ namaUniversitas: "", singkatan: "", provinsi: "" });
+      setForm(EMPTY_FORM);
       setEditingId(null);
     } catch (err) {
       alert("Gagal menyimpan");
@@ -71,6 +82,7 @@ export default function UniversitasPage() {
       namaUniversitas: univ.namaUniversitas,
       singkatan: univ.singkatan,
       provinsi: univ.provinsi,
+      ranking: univ.ranking !== null ? String(univ.ranking) : "",
     });
     setDialogOpen(true);
   };
@@ -87,8 +99,12 @@ export default function UniversitasPage() {
 
   const openNewDialog = () => {
     setEditingId(null);
-    setForm({ namaUniversitas: "", singkatan: "", provinsi: "" });
+    setForm(EMPTY_FORM);
     setDialogOpen(true);
+  };
+
+  const goToProdi = (univ: Universitas) => {
+    router.push(`/admin/universitas/prodi?universitasId=${univ.id}`);
   };
 
   if (loading) return <div className="p-4">Loading...</div>;
@@ -104,6 +120,7 @@ export default function UniversitasPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Ranking</TableHead>
               <TableHead>Nama Universitas</TableHead>
               <TableHead>Singkatan</TableHead>
               <TableHead>Provinsi</TableHead>
@@ -115,12 +132,24 @@ export default function UniversitasPage() {
           <TableBody>
             {data.map((univ) => (
               <TableRow key={univ.id}>
+                <TableCell>{univ.ranking ?? "-"}</TableCell>
                 <TableCell>{univ.namaUniversitas}</TableCell>
                 <TableCell>{univ.singkatan}</TableCell>
                 <TableCell>{univ.provinsi}</TableCell>
                 <TableCell>{univ.jumlahProdi}</TableCell>
-                <TableCell>{univ.nilaiRataRata ?? "-"}</TableCell>
+                <TableCell>
+                  {univ.nilaiRataRata !== null
+                    ? univ.nilaiRataRata.toFixed(1)
+                    : "-"}
+                </TableCell>
                 <TableCell className="space-x-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => goToProdi(univ)}
+                  >
+                    Prodi
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -174,6 +203,17 @@ export default function UniversitasPage() {
                 value={form.provinsi}
                 onChange={(e) =>
                   setForm({ ...form, provinsi: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Ranking</Label>
+              <Input
+                type="number"
+                min={1}
+                value={form.ranking}
+                onChange={(e) =>
+                  setForm({ ...form, ranking: e.target.value })
                 }
               />
             </div>

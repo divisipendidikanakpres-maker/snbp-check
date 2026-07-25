@@ -5,6 +5,8 @@ import authRoutes from './routes/auth.routes';
 import universitasRoutes from './routes/universitas.routes';
 import sekolahRoutes from './routes/sekolah.routes';
 import usersRoutes from './routes/users.routes';
+import prodiRoutes from './routes/prodi.routes';
+import lookupRoutes from './routes/lookup.routes';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 
 const app = express();
@@ -28,6 +30,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/universitas', universitasRoutes);
 app.use('/api/sekolah', sekolahRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/prodi', prodiRoutes);
+app.use('/api/lookup', lookupRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

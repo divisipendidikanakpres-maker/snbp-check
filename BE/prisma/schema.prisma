@@ -30,12 +30,56 @@ model Universitas {
   namaUniversitas String
   singkatan       String
   provinsi        String
-  jumlahProdi     Int      @default(0)
-  nilaiRataRata   Float?
+  ranking         Int?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  prodi Prodi[]
+
   @@map("universitas")
+}
+
+model Kelompok {
+  id    String  @id @default(uuid())
+  nama  String  @unique
+  prodi Prodi[]
+
+  @@map("kelompok")
+}
+
+model Jenjang {
+  id    String  @id @default(uuid())
+  nama  String  @unique
+  prodi Prodi[]
+
+  @@map("jenjang")
+}
+
+enum LevelKeketatan {
+  SANGAT_KETAT
+  KETAT
+  SEDANG
+  TERBUKA
+}
+
+model Prodi {
+  id             String         @id @default(uuid())
+  programStudi   String
+  nilai          Float
+  levelKeketatan LevelKeketatan
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  universitasId String
+  universitas   Universitas @relation(fields: [universitasId], references: [id], onDelete: Cascade)
+
+  kelompokId String
+  kelompok   Kelompok @relation(fields: [kelompokId], references: [id])
+
+  jenjangId String
+  jenjang   Jenjang @relation(fields: [jenjangId], references: [id])
+
+  @@map("prodi")
 }
 
 model Sekolah {

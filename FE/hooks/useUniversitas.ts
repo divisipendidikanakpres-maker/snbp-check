@@ -5,6 +5,7 @@ export interface Universitas {
   namaUniversitas: string;
   singkatan: string;
   provinsi: string;
+  ranking: number | null;
   jumlahProdi: number;
   nilaiRataRata: number | null;
   createdAt: string;
@@ -15,6 +16,7 @@ export interface UniversitasPayload {
   namaUniversitas: string;
   singkatan: string;
   provinsi: string;
+  ranking: number | null;
 }
 
 export function useUniversitas() {
