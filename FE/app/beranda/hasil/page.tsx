@@ -430,7 +430,7 @@ export default async function HasilPage({
               asChild
               className="px-10 py-4 mb-5 text-sm hover:opacity-90 transition hover:-translate-y-0.5 shadow-md cursor-pointer"
             >
-              <Link href="/">Selesai</Link>
+              <Link href="/beranda">Selesai</Link>
             </Button>
           </div>
         </Card>

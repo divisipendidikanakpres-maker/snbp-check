@@ -35,7 +35,7 @@ export default function AdminLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <NavBar title="Admin Panel" user={user ?? undefined} />
+      <NavBar title="Admin Panel" />
       <div className="flex flex-1">
         <AdminSidebar />
         <main className="flex-1 p-6">{children}</main>
