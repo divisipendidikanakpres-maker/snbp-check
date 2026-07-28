@@ -37,10 +37,10 @@ const chanceChartConfig: ChartConfig = {
   },
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
 
 async function fetchProdi(prodiId: string) {
-  const res = await fetch(`${API_URL}/api/prodi/${encodeURIComponent(prodiId)}`, {
+  const res = await fetch(`${API_URL}/prodi/${encodeURIComponent(prodiId)}`, {
     cache: 'no-store',
   });
   if (!res.ok) {
@@ -61,7 +61,7 @@ async function fetchSuggestions(prodiId: string, nilaiAkhir: number) {
     prodiId,
     nilaiAkhir: nilaiAkhir.toString(),
   });
-  const res = await fetch(`${API_URL}/api/prodi/suggestions?${searchParams.toString()}`, {
+  const res = await fetch(`${API_URL}/prodi/suggestions?${searchParams.toString()}`, {
     cache: 'no-store',
   });
   if (!res.ok) {
