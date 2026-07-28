@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, type AuthUser } from "@/hooks/useAuth";
 import { AdminSidebar } from "@/components/admin/sidebar";
-import { NavBar } from "@/components/nav-bar";
+import { NavBarAdmin } from "@/components/nav-bar-admin";
 
 export default function AdminLayout({
   children,
@@ -35,7 +35,7 @@ export default function AdminLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <NavBar title="Admin Panel" />
+      <NavBarAdmin title="Admin Panel" />
       <div className="flex flex-1 flex-col md:flex-row">
         <AdminSidebar />
         <main className="flex-1 p-4 md:p-6">{children}</main>

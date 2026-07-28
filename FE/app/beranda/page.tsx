@@ -521,7 +521,7 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto px-4 -mt-8">
+      <div className="max-w-5xl mx-auto px-4 -mt-8 pb-8 md:pb-12">
         {step === 1 && (
           <Card className="rounded-3xl shadow-xl border border-gray-100 p-6 md:p-8 animate-fade">
             <h2 className="text-xl font-bold text-gray-800">Data Sekolah</h2>
