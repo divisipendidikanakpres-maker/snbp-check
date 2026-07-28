@@ -24,26 +24,11 @@ interface NavBarProps {
 }
 
 export function NavBar({ title = "", user: propUser }: NavBarProps) {
-  const { me, logout } = useAuth();
+  const { logout } = useAuth();
   const [user, setUser] = useState<AuthUser | null>(propUser ?? null);
-  const [loading, setLoading] = useState(!propUser);
 
   useEffect(() => {
-    if (propUser) {
-      setUser(propUser);
-      setLoading(false);
-      return;
-    }
-
-    // call me() once on mount when no propUser
-    me()
-      .then(({ user }) => {
-        setUser(user);
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
+    setUser(propUser ?? null);
   }, [propUser]);
 
   const handleLogout = async () => {
@@ -53,7 +38,7 @@ export function NavBar({ title = "", user: propUser }: NavBarProps) {
   return (
     <nav className="flex items-center justify-between border-b border-foreground/10 bg-card px-6 py-4 shadow-sm">
       <div className="text-lg font-semibold text-foreground">{title}</div>
-      {!loading && user && (
+      {user && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="rounded-full p-0 h-10 w-10">

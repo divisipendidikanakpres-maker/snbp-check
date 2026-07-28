@@ -135,14 +135,14 @@ export default function AkunPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center gap-4">
-        <h1 className="text-2xl font-bold">Manajemen Akun</h1>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-4 md:gap-0 md:flex-row md:justify-between md:items-center">
+        <h1 className="text-xl sm:text-2xl font-bold">Manajemen Akun</h1>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
           <Input
             placeholder="Cari akun..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-64"
+            className="w-full sm:w-64"
           />
           {searching && <span className="text-xs text-gray-500">Searching...</span>}
         </div>

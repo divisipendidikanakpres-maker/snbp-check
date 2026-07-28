@@ -23,8 +23,8 @@ export function AdminSidebar() {
   };
 
   return (
-    <aside className="w-64 shrink-0 border-r border-foreground/10 bg-card p-4 flex flex-col">
-      <nav className="flex flex-col gap-1 flex-1">
+    <aside className="w-full md:w-64 md:shrink-0 border-b md:border-b-0 md:border-r border-foreground/10 bg-card p-4 flex md:flex-col">
+      <nav className="flex md:flex-col gap-1 flex-1 overflow-x-auto md:overflow-x-visible">
         {NAV_ITEMS.map((item) => {
           const active = pathname.startsWith(item.href);
           return (
@@ -32,7 +32,7 @@ export function AdminSidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "rounded-lg px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap md:whitespace-normal",
                 active
                   ? "bg-primary text-primary-foreground"
                   : "text-foreground/70 hover:bg-muted hover:text-foreground"
@@ -47,10 +47,10 @@ export function AdminSidebar() {
         variant="outline"
         size="sm"
         onClick={handleLogout}
-        className="w-full justify-start gap-2"
+        className="w-full md:mt-4 justify-start gap-2 shrink-0"
       >
         <LogOut className="h-4 w-4" />
-        Logout
+        <span className="hidden sm:inline">Logout</span>
       </Button>
     </aside>
   );

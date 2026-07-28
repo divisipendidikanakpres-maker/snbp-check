@@ -53,25 +53,25 @@ export default function RiwayatPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 md:gap-0 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Riwayat Cek</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl font-bold">Riwayat Cek</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Menampilkan riwayat pemeriksaan yang dilakukan pengguna.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
           <Input
             placeholder="Cari riwayat..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-64"
+            className="w-full sm:w-64"
           />
           {searching && <span className="text-xs text-gray-500">Searching...</span>}
+          <Button variant="outline" onClick={refresh} disabled={loading} className="w-full sm:w-auto">
+            Refresh
+          </Button>
         </div>
-        <Button variant="outline" onClick={refresh} disabled={loading}>
-          Refresh
-        </Button>
       </div>
 
       {loading ? (

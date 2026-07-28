@@ -130,74 +130,79 @@ export default function UniversitasPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center gap-4">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">Manajemen Universitas</h1>
+      <div className="flex flex-col gap-4 md:gap-0 md:flex-row md:justify-between md:items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+          <h1 className="text-xl sm:text-2xl font-bold">Manajemen Universitas</h1>
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as any)}
-            className="text-sm rounded-md border px-2 py-1"
+            className="text-sm rounded-md border px-2 py-1 w-full sm:w-auto"
           >
             <option value="ranking_tertinggi">Ranking tertinggi</option>
             <option value="ranking_terendah">Ranking terendah</option>
           </select>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
           <Input
             placeholder="Cari universitas..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-64"
+            className="w-full sm:w-64"
           />
           {searching && <span className="text-xs text-gray-500">Searching...</span>}
+          <Button onClick={openNewDialog} className="w-full sm:w-auto">+ Tambah</Button>
         </div>
-        <Button onClick={openNewDialog}>+ Tambah Universitas</Button>
       </div>
 
       <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Ranking</TableHead>
+              <TableHead className="hidden md:table-cell">Ranking</TableHead>
               <TableHead>Nama Universitas</TableHead>
-              <TableHead>Singkatan</TableHead>
-              <TableHead>Provinsi</TableHead>
-              <TableHead>Jumlah Prodi</TableHead>
-              <TableHead>Nilai Rata-rata</TableHead>
+              <TableHead className="hidden sm:table-cell">Singkatan</TableHead>
+              <TableHead className="hidden lg:table-cell">Provinsi</TableHead>
+              <TableHead className="hidden md:table-cell">Jumlah Prodi</TableHead>
+              <TableHead className="hidden lg:table-cell">Nilai Rata-rata</TableHead>
               <TableHead>Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((univ) => (
               <TableRow key={univ.id}>
-                <TableCell>{univ.ranking ?? "-"}</TableCell>
-                <TableCell>{univ.namaUniversitas}</TableCell>
-                <TableCell>{univ.singkatan}</TableCell>
-                <TableCell>{univ.provinsi}</TableCell>
-                <TableCell>{univ.jumlahProdi}</TableCell>
-                <TableCell>
+                <TableCell className="hidden md:table-cell text-xs">{univ.ranking ?? "-"}</TableCell>
+                <TableCell className="text-sm">
+                  <div className="font-medium">{univ.namaUniversitas}</div>
+                  <div className="text-xs text-gray-500 sm:hidden">{univ.singkatan}</div>
+                </TableCell>
+                <TableCell className="hidden sm:table-cell text-xs">{univ.singkatan}</TableCell>
+                <TableCell className="hidden lg:table-cell text-xs">{univ.provinsi}</TableCell>
+                <TableCell className="hidden md:table-cell text-xs">{univ.jumlahProdi}</TableCell>
+                <TableCell className="hidden lg:table-cell text-xs">
                   {univ.nilaiRataRata !== null
                     ? univ.nilaiRataRata.toFixed(1)
                     : "-"}
                 </TableCell>
-                <TableCell className="space-x-2">
+                <TableCell className="space-x-1">
                   <Button
                     variant="secondary"
-                    size="sm"
+                    size="xs"
                     onClick={() => goToProdi(univ)}
+                    className="hidden sm:inline-flex"
                   >
                     Prodi
                   </Button>
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="xs"
                     onClick={() => handleEdit(univ)}
+                    className="hidden sm:inline-flex"
                   >
                     Edit
                   </Button>
                   <Button
                     variant="destructive"
-                    size="sm"
+                    size="xs"
                     onClick={() => setDeleting(univ.id)}
                   >
                     Hapus

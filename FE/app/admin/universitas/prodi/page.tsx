@@ -168,7 +168,7 @@ export default function ProdiPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center gap-4">
+      <div className="flex flex-col gap-4 md:gap-0 md:flex-row md:justify-between md:items-center">
         <div>
           <Button
             variant="ghost"
@@ -178,30 +178,30 @@ export default function ProdiPage() {
           >
             ← Kembali
           </Button>
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <h1 className="text-xl sm:text-2xl font-bold">
               Manajemen Prodi{universitas ? ` — ${universitas.namaUniversitas}` : ""}
             </h1>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as any)}
-              className="text-sm rounded-md border px-2 py-1"
+              className="text-sm rounded-md border px-2 py-1 w-full sm:w-auto"
             >
               <option value="nilai_tertinggi">Nilai tertinggi</option>
               <option value="nilai_terendah">Nilai terendah</option>
             </select>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
           <Input
             placeholder="Cari prodi..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-64"
+            className="w-full sm:w-64"
           />
           {searching && <span className="text-xs text-gray-500">Searching...</span>}
+          <Button onClick={openNewDialog} className="w-full sm:w-auto">+ Tambah</Button>
         </div>
-        <Button onClick={openNewDialog}>+ Tambah Prodi</Button>
       </div>
 
       <div className="border rounded-lg overflow-x-auto">
