@@ -16,7 +16,9 @@
     "seed:universitas": "ts-node prisma/seed-universitas-complete.ts",
     "seed:sekolah": "ts-node prisma/seed-sekolah.ts",
     "seed:prodi": "ts-node prisma/seed-prodi-complete.ts",
-    "seed:all": "npm run seed:lookups && npm run seed:admin && npm run seed:universitas && npm run seed:sekolah && npm run seed:prodi"
+    "seed:prodi-full": "ts-node prisma/seed-prodi-full.ts",
+    "seed:all": "npm run seed:lookups && npm run seed:admin && npm run seed:universitas && npm run seed:sekolah && npm run seed:prodi",
+    "seed:all-full": "npm run seed:lookups && npm run seed:admin && npm run seed:universitas && npm run seed:sekolah && npm run seed:prodi-full"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
