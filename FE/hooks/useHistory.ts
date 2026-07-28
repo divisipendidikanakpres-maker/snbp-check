@@ -30,6 +30,13 @@ export interface HistoryPayload {
   selisih: number;
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export function useHistory() {
   const { get, post } = useApi();
 
@@ -37,9 +44,13 @@ export function useHistory() {
     return post<{ message: string; data: HistoryItem }>("/riwayat", payload);
   }
 
-  async function list(search?: string) {
-    const q = search ? `?search=${encodeURIComponent(search)}` : "";
-    return get<{ data: HistoryItem[] }>(`/riwayat${q}`);
+  async function list(search?: string, page?: number, limit?: number) {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (page) params.set('page', page.toString());
+    if (limit) params.set('limit', limit.toString());
+    const q = params.toString() ? `?${params.toString()}` : "";
+    return get<PaginatedResponse<HistoryItem>>(`/riwayat${q}`);
   }
 
   return { create, list };

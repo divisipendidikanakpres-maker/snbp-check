@@ -35,6 +35,8 @@ async function withProdiStats<T extends { id: string }>(universitasList: T[]) {
 export async function listUniversitas(req: Request, res: Response) {
   const sort = String(req.query.sort ?? 'ranking_tertinggi');
   const search = String(req.query.search ?? '').trim();
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 5;
 
   // default: ranking tertinggi => ranking ASC (1,2,3)
   let orderBy: any = { createdAt: 'desc' };
@@ -54,12 +56,17 @@ export async function listUniversitas(req: Request, res: Response) {
       }
     : undefined;
 
+  const skip = (page - 1) * limit;
+  const total = await prisma.universitas.count({ where });
+
   const universitas = await prisma.universitas.findMany({
     where,
     orderBy,
+    skip,
+    take: limit,
   });
   const withStats = await withProdiStats(universitas);
-  return res.status(200).json({ data: withStats });
+  return res.status(200).json({ data: withStats, total, page, limit });
 }
 
 export async function createUniversitas(req: Request, res: Response) {

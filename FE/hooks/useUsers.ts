@@ -18,12 +18,23 @@ export interface UpdateUserPayload {
   password?: string;
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export function useUsers() {
   const { get, put, del } = useApi();
 
-  async function list(search?: string) {
-    const q = search ? `?search=${encodeURIComponent(search)}` : "";
-    return get<{ data: User[] }>(`/users${q}`);
+  async function list(search?: string, page?: number, limit?: number) {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (page) params.set('page', page.toString());
+    if (limit) params.set('limit', limit.toString());
+    const q = params.toString() ? `?${params.toString()}` : "";
+    return get<PaginatedResponse<User>>(`/users${q}`);
   }
 
   async function update(id: string, payload: UpdateUserPayload) {

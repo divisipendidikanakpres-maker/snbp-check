@@ -6,6 +6,8 @@ import { useProdi, type Prodi } from "@/hooks/useProdi";
 import { useLookup, type LookupItem } from "@/hooks/useLookup";
 import { useUniversitas, type Universitas } from "@/hooks/useUniversitas";
 import { useSearch } from "@/hooks/useSearch";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/admin/pagination";
 import { LEVEL_KEKETATAN_INFO } from "@/lib/level-keketatan";
 import { LookupSelect } from "@/components/admin/lookup-select";
 import { Button } from "@/components/ui/button";
@@ -53,6 +55,7 @@ export default function ProdiPage() {
 
   const [universitas, setUniversitas] = useState<Universitas | null>(null);
   const [data, setData] = useState<Prodi[]>([]);
+  const [total, setTotal] = useState(0);
   const [kelompokList, setKelompokList] = useState<LookupItem[]>([]);
   const [jenjangList, setJenjangList] = useState<LookupItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,11 +66,14 @@ export default function ProdiPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
 
+  const { page, limit, handlePageChange, handleLimitChange } = usePagination();
+
   const { query, setQuery, searching } = useSearch(async (searchQuery) => {
     setLoading(true);
     try {
-      const res = await list(universitasId, sort, searchQuery);
+      const res = await list(universitasId, sort, searchQuery, page, limit);
       setData(res.data);
+      setTotal(res.total);
     } finally {
       setLoading(false);
     }
@@ -82,12 +88,15 @@ export default function ProdiPage() {
     setLoading(true);
     Promise.all([
       getById(universitasId).then((res) => setUniversitas(res.data)),
-      list(universitasId, sort, query || undefined).then((res) => setData(res.data)),
+      list(universitasId, sort, query || undefined, page, limit).then((res) => {
+        setData(res.data);
+        setTotal(res.total);
+      }),
       listKelompok().then((res) => setKelompokList(res.data)),
       listJenjang().then((res) => setJenjangList(res.data)),
     ])
       .finally(() => setLoading(false));
-  }, [universitasId, sort]);
+  }, [universitasId, sort, page, limit]);
 
   const openNewDialog = () => {
     setEditingId(null);
@@ -241,6 +250,14 @@ export default function ProdiPage() {
           </TableBody>
         </Table>
       </div>
+
+      <Pagination
+        page={page}
+        limit={limit}
+        total={total}
+        onPageChange={handlePageChange}
+        onLimitChange={handleLimitChange}
+      />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUniversitas, type Universitas } from "@/hooks/useUniversitas";
 import { useSearch } from "@/hooks/useSearch";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/admin/pagination";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -41,18 +43,21 @@ export default function UniversitasPage() {
   const router = useRouter();
   const { list, create, update, remove } = useUniversitas();
   const [data, setData] = useState<Universitas[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<'ranking_tertinggi' | 'ranking_terendah'>('ranking_tertinggi');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const { page, limit, handlePageChange, handleLimitChange } = usePagination();
 
   const { query, setQuery, searching } = useSearch(async (searchQuery) => {
     setLoading(true);
     try {
-      const res = await list(sort, searchQuery);
+      const res = await list(sort, searchQuery, page, limit);
       setData(res.data);
+      setTotal(res.total);
     } finally {
       setLoading(false);
     }
@@ -60,11 +65,12 @@ export default function UniversitasPage() {
 
   useEffect(() => {
     setLoading(true);
-    list(sort, query || undefined).then((res) => {
+    list(sort, query || undefined, page, limit).then((res) => {
       setData(res.data);
+      setTotal(res.total);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [sort]);
+  }, [sort, page, limit]);
 
   const handleSave = async () => {
     const payload = {
@@ -202,6 +208,14 @@ export default function UniversitasPage() {
           </TableBody>
         </Table>
       </div>
+
+      <Pagination
+        page={page}
+        limit={limit}
+        total={total}
+        onPageChange={handlePageChange}
+        onLimitChange={handleLimitChange}
+      />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>

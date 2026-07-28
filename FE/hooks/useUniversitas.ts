@@ -12,6 +12,13 @@ export interface Universitas {
   updatedAt: string;
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export interface UniversitasPayload {
   namaUniversitas: string;
   singkatan: string;
@@ -22,12 +29,14 @@ export interface UniversitasPayload {
 export function useUniversitas() {
   const { get, post, put, del } = useApi();
 
-  async function list(sort?: string, search?: string) {
+  async function list(sort?: string, search?: string, page?: number, limit?: number) {
     const params = new URLSearchParams();
     if (sort) params.set('sort', sort);
     if (search) params.set('search', search);
+    if (page) params.set('page', page.toString());
+    if (limit) params.set('limit', limit.toString());
     const q = params.toString() ? `?${params.toString()}` : "";
-    return get<{ data: Universitas[] }>(`/universitas${q}`);
+    return get<PaginatedResponse<Universitas>>(`/universitas${q}`);
   }
 
   async function create(payload: UniversitasPayload) {

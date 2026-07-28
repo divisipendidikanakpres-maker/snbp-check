@@ -5,6 +5,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { useUsers, type User } from "@/hooks/useUsers";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearch } from "@/hooks/useSearch";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/admin/pagination";
 import { Input } from "@/components/ui/input";
 import type { ApiError } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
@@ -50,6 +52,7 @@ export default function AkunPage() {
   const { list, update, updateRole, remove } = useUsers();
   const { me } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [total, setTotal] = useState(0);
   const [currentUserId, setCurrentUserId] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -60,11 +63,14 @@ export default function AkunPage() {
   const [editError, setEditError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const { page, limit, handlePageChange, handleLimitChange } = usePagination();
+
   const { query, setQuery, searching } = useSearch(async (searchQuery) => {
     setLoading(true);
     try {
-      const res = await list(searchQuery);
+      const res = await list(searchQuery, page, limit);
       setUsers(res.data);
+      setTotal(res.total);
     } finally {
       setLoading(false);
     }
@@ -73,9 +79,12 @@ export default function AkunPage() {
   useEffect(() => {
     Promise.all([
       me().then((res) => setCurrentUserId(res.user.id)),
-      list(query || undefined).then((res) => setUsers(res.data)),
+      list(query || undefined, page, limit).then((res) => {
+        setUsers(res.data);
+        setTotal(res.total);
+      }),
     ]).finally(() => setLoading(false));
-  }, []);
+  }, [page, limit]);
 
   const handleRoleChange = async (userId: string, newRole: "USER" | "ADMIN") => {
     try {
@@ -198,6 +207,14 @@ export default function AkunPage() {
           </TableBody>
         </Table>
       </div>
+
+      <Pagination
+        page={page}
+        limit={limit}
+        total={total}
+        onPageChange={handlePageChange}
+        onLimitChange={handleLimitChange}
+      />
 
       <AlertDialog open={!!deleting}>
         <AlertDialogContent>

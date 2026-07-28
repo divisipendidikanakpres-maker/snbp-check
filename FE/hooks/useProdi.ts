@@ -36,16 +36,25 @@ export interface ProdiPayload {
   nilai: number;
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export function useProdi() {
   const { get, post, put, del } = useApi();
 
-  async function list(universitasId?: string, sort?: string, search?: string) {
+  async function list(universitasId?: string, sort?: string, search?: string, page?: number, limit?: number) {
     const params = new URLSearchParams();
     if (universitasId) params.set('universitasId', universitasId);
     if (sort) params.set('sort', sort);
     if (search) params.set('search', search);
+    if (page) params.set('page', page.toString());
+    if (limit) params.set('limit', limit.toString());
     const query = params.toString() ? `?${params.toString()}` : "";
-    return get<{ data: Prodi[] }>(`/prodi${query}`);
+    return get<PaginatedResponse<Prodi>>(`/prodi${query}`);
   }
 
   async function getById(id: string) {

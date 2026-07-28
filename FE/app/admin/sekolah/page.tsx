@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useSekolah, type Sekolah } from "@/hooks/useSekolah";
 import { useSearch } from "@/hooks/useSearch";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/admin/pagination";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -32,6 +34,7 @@ import { Label } from "@/components/ui/label";
 export default function SekolahPage() {
   const { list, create, update, remove } = useSekolah();
   const [data, setData] = useState<Sekolah[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -40,12 +43,14 @@ export default function SekolahPage() {
     namaSekolah: "",
     akreditasi: "-" as "A" | "B" | "C" | "-",
   });
+  const { page, limit, handlePageChange, handleLimitChange } = usePagination();
 
   const { query, setQuery, searching } = useSearch(async (searchQuery) => {
     setLoading(true);
     try {
-      const res = await list(searchQuery);
+      const res = await list(searchQuery, page, limit);
       setData(res.data);
+      setTotal(res.total);
     } finally {
       setLoading(false);
     }
@@ -53,11 +58,12 @@ export default function SekolahPage() {
 
   useEffect(() => {
     setLoading(true);
-    list(query || undefined).then((res) => {
+    list(query || undefined, page, limit).then((res) => {
       setData(res.data);
+      setTotal(res.total);
       setLoading(false);
     });
-  }, []);
+  }, [page, limit]);
 
   const handleSave = async () => {
     try {
@@ -154,6 +160,14 @@ export default function SekolahPage() {
           </TableBody>
         </Table>
       </div>
+
+      <Pagination
+        page={page}
+        limit={limit}
+        total={total}
+        onPageChange={handlePageChange}
+        onLimitChange={handleLimitChange}
+      />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>

@@ -58,6 +58,8 @@ export async function createRiwayat(req: Request, res: Response) {
 
 export async function listRiwayat(req: Request, res: Response) {
   const search = String(req.query.search ?? '').trim();
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 5;
 
   const where = search
     ? {
@@ -69,6 +71,9 @@ export async function listRiwayat(req: Request, res: Response) {
         ],
       }
     : undefined;
+
+  const skip = (page - 1) * limit;
+  const total = await prisma.riwayat.count({ where });
 
   const riwayats = await prisma.riwayat.findMany({
     where,
@@ -82,7 +87,9 @@ export async function listRiwayat(req: Request, res: Response) {
     orderBy: {
       createdAt: 'desc',
     },
+    skip,
+    take: limit,
   });
 
-  return res.status(200).json({ data: riwayats });
+  return res.status(200).json({ data: riwayats, total, page, limit });
 }

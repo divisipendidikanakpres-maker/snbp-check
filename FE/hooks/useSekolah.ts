@@ -13,12 +13,23 @@ export interface SekolahPayload {
   akreditasi: "A" | "B" | "C" | "-";
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export function useSekolah() {
   const { get, post, put, del } = useApi();
 
-  async function list(search?: string) {
-    const q = search ? `?search=${encodeURIComponent(search)}` : "";
-    return get<{ data: Sekolah[] }>(`/sekolah${q}`);
+  async function list(search?: string, page?: number, limit?: number) {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (page) params.set('page', page.toString());
+    if (limit) params.set('limit', limit.toString());
+    const q = params.toString() ? `?${params.toString()}` : "";
+    return get<PaginatedResponse<Sekolah>>(`/sekolah${q}`);
   }
 
   async function create(payload: SekolahPayload) {
