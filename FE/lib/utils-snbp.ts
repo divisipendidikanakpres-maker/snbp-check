@@ -1,9 +1,9 @@
 import { Jurusan, SNBP_DATA } from "./data-univ";
 
-export function badgeClass(level: Jurusan["levelKeketatan"]) {
-  if (level === "Sangat Ketat") return "badge-sangat-ketat";
-  if (level === "Ketat") return "badge-ketat";
-  if (level === "Sedang") return "badge-sedang";
+export function badgeClass(level: Jurusan["levelKeketatan"] | "SANGAT_KETAT" | "KETAT" | "SEDANG" | "TERBUKA") {
+  if (level === "Sangat Ketat" || level === "SANGAT_KETAT") return "badge-sangat-ketat";
+  if (level === "Ketat" || level === "KETAT") return "badge-ketat";
+  if (level === "Sedang" || level === "SEDANG") return "badge-sedang";
   return "badge-terbuka";
 }
 

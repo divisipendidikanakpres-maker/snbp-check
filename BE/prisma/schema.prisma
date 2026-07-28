@@ -22,6 +22,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  riwayat   Riwayat[]
+
   @@map("users")
 }
 
@@ -90,4 +92,25 @@ model Sekolah {
   updatedAt   DateTime @updatedAt
 
   @@map("sekolah")
+}
+
+model Riwayat {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sekolahId      String?   
+  sekolahNama    String
+  universitasId  String
+  universitasNama String
+  prodiId        String
+  prodiNama      String
+  avgRapor       Float
+  avgTKA         Float?
+  nilaiAkhir     Float
+  persentase     Int
+  selisih        Float
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("riwayat")
 }

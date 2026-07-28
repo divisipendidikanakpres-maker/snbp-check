@@ -10,9 +10,9 @@ import { requireAdmin, requireAuth } from '../middleware/auth.middleware';
 
 const router = Router();
 
-router.get('/', requireAuth, requireAdmin, listUniversitas);
+router.get('/', listUniversitas);
 router.post('/', requireAuth, requireAdmin, createUniversitas);
-router.get('/:id', requireAuth, requireAdmin, getUniversitas);
+router.get('/:id', requireAuth, getUniversitas);
 router.put('/:id', requireAuth, requireAdmin, updateUniversitas);
 router.delete('/:id', requireAuth, requireAdmin, deleteUniversitas);
 

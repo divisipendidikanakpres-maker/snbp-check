@@ -15,6 +15,13 @@ export interface Prodi {
   universitasId: string;
   kelompokId: string;
   jenjangId: string;
+  universitas: {
+    id: string;
+    namaUniversitas: string;
+    singkatan: string;
+    provinsi: string;
+    ranking: number | null;
+  };
   kelompok: Lookup;
   jenjang: Lookup;
   createdAt: string;
@@ -37,6 +44,17 @@ export function useProdi() {
     return get<{ data: Prodi[] }>(`/prodi${query}`);
   }
 
+  async function getById(id: string) {
+    return get<{ data: Prodi }>(`/prodi/${id}`);
+  }
+
+  async function suggest(prodiId: string, nilaiAkhir: number) {
+    const query = `?prodiId=${encodeURIComponent(prodiId)}&nilaiAkhir=${encodeURIComponent(
+      nilaiAkhir.toString(),
+    )}`;
+    return get<{ data: Prodi[] }>(`/prodi/suggestions${query}`);
+  }
+
   async function create(payload: ProdiPayload) {
     return post<{ message: string; data: Prodi }>("/prodi", payload);
   }
@@ -49,5 +67,5 @@ export function useProdi() {
     return del<{ message: string }>(`/prodi/${id}`);
   }
 
-  return { list, create, update, remove };
+  return { list, getById, suggest, create, update, remove };
 }

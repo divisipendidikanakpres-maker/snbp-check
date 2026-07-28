@@ -20,9 +20,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { KURIKULUM_DATA } from "@/lib/data-kurikulum";
 import { SEKOLAH_DATA, SekolahItem } from "@/lib/data-sekolah";
-import { SNBP_DATA } from "@/lib/data-univ";
 import { badgeClass, getStatusInfo, slugify } from "@/lib/utils-snbp";
 import { useSekolah } from "@/hooks/useSekolah";
+import { useUniversitas, type Universitas } from "@/hooks/useUniversitas";
+import { useProdi, type Prodi } from "@/hooks/useProdi";
+import { useHistory } from "@/hooks/useHistory";
 import { InfoIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -44,6 +46,9 @@ const TKA_WAJIB_FIELDS = [
 export default function Home() {
   const router = useRouter();
   const { list: listSekolah } = useSekolah();
+  const { list: listUniversitas } = useUniversitas();
+  const { list: listProdi, getById, suggest } = useProdi();
+  const { create: createHistory } = useHistory();
 
   const [step, setStepState] = useState(1);
   const [doneSteps, setDoneSteps] = useState<number[]>([]);
@@ -71,10 +76,10 @@ export default function Home() {
   } | null>(null);
 
   const [ptn, setPtn] = useState("");
-  const [jurusanCode, setJurusanCode] = useState("");
-  const [selectedJurusanCodeGlobal, setSelectedJurusanCodeGlobal] = useState<
-    string | null
-  >(null);
+  const [jurusanId, setJurusanId] = useState("");
+  const [universitasList, setUniversitasList] = useState<Universitas[]>([]);
+  const [prodiList, setProdiList] = useState<Prodi[]>([]);
+  const [selectedUniversitas, setSelectedUniversitas] = useState<Universitas | null>(null);
 
   const [hasilRasionalisasi, setHasilRasionalisasi] = useState<{
     programStudi: string;
@@ -109,6 +114,10 @@ export default function Home() {
     listSekolah()
       .then((res) => setSekolahList(res.data))
       .catch(() => setSekolahList([]));
+
+    listUniversitas()
+      .then((res) => setUniversitasList(res.data))
+      .catch(() => setUniversitasList([]));
   }, []);
 
   const schoolItems = useMemo(() => {
@@ -336,83 +345,63 @@ export default function Home() {
     setStep(4);
   }
 
-  const unis = useMemo(() => {
-    const map = new Map<string, (typeof SNBP_DATA)[number]>();
-    SNBP_DATA.forEach((d) => {
-      if (!map.has(d.universitas)) map.set(d.universitas, d);
-    });
-    return [...map.values()].sort((a, b) => a.rankingPTN - b.rankingPTN);
-  }, []);
-
-  const jurusanOptions = useMemo(() => {
-    if (!ptn) return [];
-    return SNBP_DATA.filter((d) => d.universitas === ptn).sort(
-      (a, b) => b.estimasiNilaiMin - a.estimasiNilaiMin,
-    );
-  }, [ptn]);
-
   const ptnItems = useMemo(() => {
-    return unis.map((u) => ({
-      value: u.universitas,
-      label: `#${u.rankingPTN}. ${u.universitas} (${u.singkatan})`,
-      universitas: u.universitas,
-      singkatan: u.singkatan,
-      rankingPTN: u.rankingPTN,
-    }));
-  }, [unis]);
+    return universitasList
+      .slice()
+      .sort((a, b) => (a.ranking ?? 999) - (b.ranking ?? 999))
+      .map((u) => ({
+        value: u.id,
+        label: `#${u.ranking ?? '-'} ${u.namaUniversitas} (${u.singkatan})`,
+      }));
+  }, [universitasList]);
+
+  const jurusanItems = useMemo(() => {
+    return prodiList
+      .slice()
+      .sort((a, b) => b.nilai - a.nilai)
+      .map((d) => ({
+        value: d.id,
+        label: `${d.programStudi} (${d.kelompok.nama})`,
+      }));
+  }, [prodiList]);
 
   const selectedPtnItem = ptnItems.find((item) => item.value === ptn) ?? {
     value: "",
     label: "-- Pilih PTN --",
-    universitas: "",
-    singkatan: "",
-    rankingPTN: 0,
   };
 
-  const jurusanItems = useMemo(() => {
-    return jurusanOptions.map((d) => ({
-      value: d.code,
-      label: `${d.programStudi} (Est. ${d.estimasiNilaiMin})`,
-      code: d.code,
-      programStudi: d.programStudi,
-      estimasiNilaiMin: d.estimasiNilaiMin,
-      universitas: d.universitas,
-    }));
-  }, [jurusanOptions]);
-
   const selectedJurusanItem = jurusanItems.find(
-    (item) => item.value === jurusanCode,
+    (item) => item.value === jurusanId,
   ) ?? {
     value: "",
     label: "-- Pilih Program Studi --",
-    code: "",
-    programStudi: "",
-    estimasiNilaiMin: 0,
-    universitas: "",
   };
 
   function loadJurusan(val: string) {
     setPtn(val);
-    setJurusanCode("");
-    setSelectedJurusanCodeGlobal(null);
+    setJurusanId("");
+    const universitas = universitasList.find((u) => u.id === val);
+    setSelectedUniversitas(universitas ?? null);
+    if (universitas) {
+      listProdi(universitas.id)
+        .then((res) => setProdiList(res.data))
+        .catch(() => setProdiList([]));
+    } else {
+      setProdiList([]);
+    }
   }
 
-  function onJurusanChange(code: string) {
-    setJurusanCode(code);
-    if (!code) {
-      setSelectedJurusanCodeGlobal(null);
-      return;
-    }
-    setSelectedJurusanCodeGlobal(code);
+  function onJurusanChange(id: string) {
+    setJurusanId(id);
   }
 
   const currentJurusan = useMemo(
-    () => SNBP_DATA.find((x) => x.code === jurusanCode) ?? null,
-    [jurusanCode],
+    () => prodiList.find((x) => x.id === jurusanId) ?? null,
+    [jurusanId, prodiList],
   );
 
-  function hitungRasionalisasi() {
-    if (!jurusanCode) {
+  async function hitungRasionalisasi() {
+    if (!jurusanId) {
       alert("Pilih PTN dan jurusan terlebih dahulu.");
       return;
     }
@@ -420,10 +409,16 @@ export default function Home() {
       alert("Nilai rapor belum dihitung. Mulai dari langkah 1.");
       return;
     }
-    const d = SNBP_DATA.find((x) => x.code === jurusanCode);
-    if (!d) return;
 
-    const estimasi = d.estimasiNilaiMin;
+    const prodi = prodiList.find((item) => item.id === jurusanId);
+    const universitas = selectedUniversitas;
+
+    if (!prodi || !universitas) {
+      alert("Data PTN atau jurusan tidak lengkap.");
+      return;
+    }
+
+    const estimasi = prodi.nilai;
     let nilaiAkhir = avgRaporGlobal;
     let bobotRapor = 1.0;
     let bobotTKA = 0.0;
@@ -434,15 +429,32 @@ export default function Home() {
     }
 
     const selisih = nilaiAkhir - estimasi;
+    const stat = getStatusInfo(selisih);
 
     const params = new URLSearchParams({
-      code: jurusanCode,
+      prodiId: jurusanId,
       avgRapor: avgRaporGlobal.toFixed(2),
       avgTKA: avgTKAAll !== null ? avgTKAAll.toFixed(2) : "",
       bobotRapor: bobotRapor.toString(),
       bobotTKA: bobotTKA.toString(),
       nilaiAkhir: nilaiAkhir.toFixed(2),
       selisih: selisih.toFixed(1),
+    });
+
+    createHistory({
+      sekolahId: selectedSchool?.npsn,
+      sekolahNama: selectedSchool?.namaSekolah ?? "-",
+      universitasId: universitas.id,
+      universitasNama: universitas.namaUniversitas,
+      prodiId: prodi.id,
+      prodiNama: prodi.programStudi,
+      avgRapor: avgRaporGlobal,
+      avgTKA: avgTKAAll,
+      nilaiAkhir,
+      persentase: stat.pct,
+      selisih,
+    }).catch(() => {
+      // ignore history errors for now
     });
 
     router.push(`/hasil?${params.toString()}`);
@@ -960,12 +972,10 @@ export default function Home() {
                           {currentJurusan.programStudi}
                         </div>
                         <div className="text-[11px] text-gray-500 mt-0.5">
-                          <span className="flex">
-                            {currentJurusan.universitas}
+                          <span className="block">
+                            {currentJurusan.universitas.namaUniversitas}
                           </span>
-                          <span>
-                            Estimasi : {currentJurusan.estimasiNilaiMin}
-                          </span>
+                          <span>Estimasi: {currentJurusan.nilai.toFixed(1)}</span>
                         </div>
                       </div>
                       <span

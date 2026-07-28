@@ -16,11 +16,63 @@ export async function listProdi(req: Request, res: Response) {
 
   const data = await prisma.prodi.findMany({
     where: universitasId ? { universitasId: String(universitasId) } : undefined,
-    include: { kelompok: true, jenjang: true },
+    include: { universitas: true, kelompok: true, jenjang: true },
     orderBy: { createdAt: 'desc' },
   });
 
   return res.status(200).json({ data });
+}
+
+export async function getProdi(req: Request, res: Response) {
+  const { id } = req.params;
+
+  const prodi = await prisma.prodi.findUnique({
+    where: { id },
+    include: { universitas: true, kelompok: true, jenjang: true },
+  });
+
+  if (!prodi) {
+    return res.status(404).json({ message: 'Prodi tidak ditemukan.' });
+  }
+
+  return res.status(200).json({ data: prodi });
+}
+
+export async function suggestProdiAlternatives(req: Request, res: Response) {
+  const prodiId = String(req.query.prodiId ?? '');
+  const nilaiAkhir = Number(req.query.nilaiAkhir);
+
+  if (!prodiId || Number.isNaN(nilaiAkhir)) {
+    return res.status(400).json({ message: 'Parameter prodiId dan nilaiAkhir wajib diisi.' });
+  }
+
+  const targetProdi = await prisma.prodi.findUnique({
+    where: { id: prodiId },
+  });
+
+  if (!targetProdi) {
+    return res.status(404).json({ message: 'Prodi target tidak ditemukan.' });
+  }
+
+  const candidates = await prisma.prodi.findMany({
+    where: {
+      universitasId: targetProdi.universitasId,
+      kelompokId: targetProdi.kelompokId,
+      NOT: { id: targetProdi.id },
+      nilai: { lt: targetProdi.nilai },
+    },
+    include: { universitas: true, kelompok: true, jenjang: true },
+  });
+
+  const suggestions = candidates
+    .sort((a, b) => {
+      const da = Math.abs(a.nilai - nilaiAkhir) + (targetProdi.nilai - a.nilai);
+      const db = Math.abs(b.nilai - nilaiAkhir) + (targetProdi.nilai - b.nilai);
+      return da - db;
+    })
+    .slice(0, 5);
+
+  return res.status(200).json({ data: suggestions });
 }
 
 export async function createProdi(req: Request, res: Response) {

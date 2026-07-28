@@ -2,12 +2,8 @@ import { ChartPieDonutText } from "@/components/PieChartDonut";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { ChartConfig } from "@/components/ui/chart";
-import { SNBP_DATA } from "@/lib/data-univ";
-import {
-  badgeClass,
-  getStatusInfo,
-  suggestAlternatives,
-} from "@/lib/utils-snbp";
+import { badgeClass, getStatusInfo } from "@/lib/utils-snbp";
+import type { LevelKeketatan } from "@/hooks/useProdi";
 import { FileChartPie } from "lucide-react";
 import Link from "next/link";
 
@@ -30,11 +26,64 @@ const chartConfig: ChartConfig = {
   },
 };
 
+const chanceChartConfig: ChartConfig = {
+  Peluang: {
+    label: "Peluang lolos",
+    color: "hsl(var(--chart-5))",
+  },
+  Sisa: {
+    label: "Sisa",
+    color: "hsl(var(--chart-2))",
+  },
+};
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000';
+
+async function fetchProdi(prodiId: string) {
+  const res = await fetch(`${API_URL}/api/prodi/${encodeURIComponent(prodiId)}`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    throw new Error('Gagal mengambil data prodi.');
+  }
+  const json = await res.json();
+  return json.data as {
+    id: string;
+    programStudi: string;
+    nilai: number;
+    levelKeketatan: LevelKeketatan;
+    universitas: { namaUniversitas: string; singkatan: string; provinsi: string; ranking: number | null };
+  };
+}
+
+async function fetchSuggestions(prodiId: string, nilaiAkhir: number) {
+  const searchParams = new URLSearchParams({
+    prodiId,
+    nilaiAkhir: nilaiAkhir.toString(),
+  });
+  const res = await fetch(`${API_URL}/api/prodi/suggestions?${searchParams.toString()}`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    return [];
+  }
+  const json = await res.json();
+  return json.data as Array<{
+    id: string;
+    programStudi: string;
+    nilai: number;
+    levelKeketatan: string;
+    universitas: { namaUniversitas: string };
+    kelompok: { nama: string };
+    jenjang: { nama: string };
+  }>;
+}
+
 export default async function HasilPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    code?: string;
+    prodiId?: string;
     avgRapor?: string;
     avgTKA?: string;
     bobotRapor?: string;
@@ -43,19 +92,10 @@ export default async function HasilPage({
     selisih?: string;
   }>;
 }) {
-  const { code, avgRapor, avgTKA, bobotRapor, bobotTKA, nilaiAkhir, selisih } =
+  const { prodiId, avgRapor, avgTKA, bobotRapor, bobotTKA, nilaiAkhir, selisih } =
     await searchParams;
 
-  const jurusan = code ? SNBP_DATA.find((x) => x.code === code) : undefined;
-
-  if (
-    !jurusan ||
-    !avgRapor ||
-    !nilaiAkhir ||
-    !selisih ||
-    !bobotRapor ||
-    !bobotTKA
-  ) {
+  if (!prodiId || !avgRapor || !nilaiAkhir || !selisih || !bobotRapor || !bobotTKA) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-10 text-sm">
         Data hasil tidak lengkap. Silakan ulangi rasionalisasi dari awal.
@@ -68,7 +108,23 @@ export default async function HasilPage({
     );
   }
 
-  const estimasi = jurusan.estimasiNilaiMin;
+  let prodi;
+  try {
+    prodi = await fetchProdi(prodiId);
+  } catch {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-10 text-sm">
+        Tidak dapat menampilkan hasil. Silakan ulangi rasionalisasi dari awal.
+        <div className="mt-4">
+          <Button asChild>
+            <Link href="/">Kembali ke halaman utama</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const estimasi = prodi.nilai;
   const selisihNum = parseFloat(selisih);
   const stat = getStatusInfo(selisihNum);
   const avgRaporNum = parseFloat(avgRapor);
@@ -78,7 +134,7 @@ export default async function HasilPage({
   const bobotTKANum = parseFloat(bobotTKA);
 
   const alternatives =
-    selisihNum < 0 ? suggestAlternatives(code!, nilaiAkhirNum, 5) : [];
+    selisihNum < 0 ? await fetchSuggestions(prodiId, nilaiAkhirNum) : [];
 
   return (
     <>
@@ -113,20 +169,17 @@ export default async function HasilPage({
                 Hasil Rasionalisasi
               </div>
               <div className="text-lg font-bold text-gray-800 mt-1">
-                {jurusan.programStudi}
+                {prodi.programStudi}
               </div>
               <div className="text-xs text-gray-500">
-                {jurusan.universitas} • Estimasi min:{" "}
+                {prodi.universitas.namaUniversitas} • Estimasi min:{" "}
                 <span className="font-semibold text-gray-800">
                   {estimasi.toFixed(1)}
                 </span>
               </div>
               <div className="mt-2 inline-flex items-center gap-2">
-                <span className={badgeClass(jurusan.levelKeketatan)}>
-                  {jurusan.levelKeketatan}
-                </span>
-                <span className="text-[11px] text-gray-400">
-                  {jurusan.referensiRanking}
+                <span className={badgeClass(prodi.levelKeketatan)}>
+                  {prodi.levelKeketatan}
                 </span>
               </div>
             </div>
@@ -284,47 +337,90 @@ export default async function HasilPage({
               </div>
             </ChartPieDonutText>
           </div>
-
-          {alternatives.length > 0 && (
+ 
+          <div className="p-6">
+            <ChartPieDonutText
+              datakey="value"
+              namakey="name"
+              valFinal={stat.pct}
+              final="Peluang"
+              chartConfig={chanceChartConfig}
+              chartData={[
+                { name: "Peluang", value: stat.pct, fill: "oklch(66.7% 0.11 234.34)" },
+                { name: "Sisa", value: 100 - stat.pct, fill: "oklch(96.3% 0.042 128.79)" },
+              ]}
+            >
+              <div className="flex items-center gap-1 leading-none font-medium">
+                <FileChartPie className="h-4 w-4" />
+                Perkiraan peluang kelulusan
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-5 text-center text-xs">
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+                  <div className="text-[11px] text-slate-500 mb-0.5">
+                    Persentase kesempatan
+                  </div>
+                  <div className="text-lg font-bold text-slate-900">
+                    {stat.pct}%
+                  </div>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+                  <div className="text-[11px] text-slate-500 mb-0.5">
+                    Nilai akhir
+                  </div>
+                  <div className="text-lg font-bold text-slate-900">
+                    {nilaiAkhirNum.toFixed(1)}
+                  </div>
+                </div>
+              </div>
+            </ChartPieDonutText>
+          </div>
+ 
+          {selisihNum < 0 && (
             <div className="flex flex-col border-t border-gray-200 pt-4 text-xs">
               <div className="text-lg font-semibold text-gray-800 mb-2">
-                Saran jurusan lain di {jurusan.universitas}
+                Saran jurusan lain di {prodi.universitas.namaUniversitas}
               </div>
               <p className="text-[11px] text-gray-500 mb-8">
                 Nilai kamu belum mencapai estimasi minimum jurusan ini. Berikut
                 beberapa pilihan lain dengan estimasi nilai lebih rendah namun
                 masih satu universitas dan kelompok jurusan.
               </p>
-              <div className="space-y-3">
-                {alternatives.map((alt) => {
-                  const diff = nilaiAkhirNum - alt.estimasiNilaiMin;
-                  return (
-                    <div
-                      key={alt.code}
-                      className="flex items-center justify-between bg-gray-50 border border-gray-700 rounded-lg px-3 py-2"
-                    >
-                      <div>
-                        <div className="text-xs font-semibold text-gray-800">
-                          {alt.programStudi}
+              {alternatives.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-600">
+                  Tidak ada saran.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {alternatives.map((alt) => {
+                    const diff = nilaiAkhirNum - alt.nilai;
+                    return (
+                      <div
+                        key={alt.id}
+                        className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
+                      >
+                        <div>
+                          <div className="text-xs font-semibold text-gray-800">
+                            {alt.programStudi}
+                          </div>
+                          <div className="text-[11px] text-gray-500">
+                            Estimasi min: {" "}
+                            <span className="font-semibold text-gray-800">
+                              {alt.nilai.toFixed(1)}
+                            </span>{" "}
+                            • {alt.kelompok.nama}
+                          </div>
                         </div>
-                        <div className="text-[11px] text-gray-500">
-                          Estimasi min:{" "}
-                          <span className="font-semibold text-gray-800">
-                            {alt.estimasiNilaiMin.toFixed(1)}
-                          </span>{" "}
-                          • {alt.kelompok}
+                        <div className="text-right text-[11px] text-gray-500">
+                          Selisih dengan nilai kamu: {" "}
+                          <span className="font-semibold text-indigo-600">
+                            {diff >= 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1)}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right text-[11px] text-gray-500">
-                        Selisih dengan nilai kamu:{" "}
-                        <span className="font-semibold text-indigo-600">
-                          {diff >= 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

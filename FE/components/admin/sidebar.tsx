@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/admin/akun", label: "Manajemen Akun" },
   { href: "/admin/universitas", label: "Manajemen Universitas" },
   { href: "/admin/sekolah", label: "Manajemen Sekolah" },
+  { href: "/admin/riwayat", label: "Riwayat Cek" },
 ];
 
 export function AdminSidebar() {
