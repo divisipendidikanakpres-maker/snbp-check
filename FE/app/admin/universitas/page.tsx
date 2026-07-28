@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUniversitas, type Universitas } from "@/hooks/useUniversitas";
+import { useSearch } from "@/hooks/useSearch";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -47,9 +48,19 @@ export default function UniversitasPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
+  const { query, setQuery, searching } = useSearch(async (searchQuery) => {
+    setLoading(true);
+    try {
+      const res = await list(sort, searchQuery);
+      setData(res.data);
+    } finally {
+      setLoading(false);
+    }
+  });
+
   useEffect(() => {
     setLoading(true);
-    list(sort).then((res) => {
+    list(sort, query || undefined).then((res) => {
       setData(res.data);
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -113,7 +124,7 @@ export default function UniversitasPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-4">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold">Manajemen Universitas</h1>
           <select
@@ -124,6 +135,15 @@ export default function UniversitasPage() {
             <option value="ranking_tertinggi">Ranking tertinggi</option>
             <option value="ranking_terendah">Ranking terendah</option>
           </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Cari universitas..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-64"
+          />
+          {searching && <span className="text-xs text-gray-500">Searching...</span>}
         </div>
         <Button onClick={openNewDialog}>+ Tambah Universitas</Button>
       </div>

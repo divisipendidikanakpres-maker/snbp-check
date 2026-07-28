@@ -14,6 +14,7 @@ const prodiSchema = z.object({
 export async function listProdi(req: Request, res: Response) {
   const { universitasId } = req.query;
   const sort = String(req.query.sort ?? 'nilai_tertinggi');
+  const search = String(req.query.search ?? '').trim();
 
   let orderBy: any = { createdAt: 'desc' };
   if (sort === 'nilai_tertinggi') {
@@ -22,8 +23,23 @@ export async function listProdi(req: Request, res: Response) {
     orderBy = { nilai: 'asc' };
   }
 
+  const baseWhere: any = universitasId ? { universitasId: String(universitasId) } : undefined;
+  const searchWhere = search
+    ? {
+        OR: [
+          { programStudi: { contains: search, mode: 'insensitive' as const } },
+          { kelompok: { nama: { contains: search, mode: 'insensitive' as const } } },
+          { jenjang: { nama: { contains: search, mode: 'insensitive' as const } } },
+        ],
+      }
+    : undefined;
+
+  const where = baseWhere && searchWhere
+    ? { AND: [baseWhere, searchWhere] }
+    : baseWhere || searchWhere;
+
   const data = await prisma.prodi.findMany({
-    where: universitasId ? { universitasId: String(universitasId) } : undefined,
+    where,
     include: { universitas: true, kelompok: true, jenjang: true },
     orderBy,
   });

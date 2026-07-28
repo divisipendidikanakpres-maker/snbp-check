@@ -16,8 +16,9 @@ export interface SekolahPayload {
 export function useSekolah() {
   const { get, post, put, del } = useApi();
 
-  async function list() {
-    return get<{ data: Sekolah[] }>("/sekolah");
+  async function list(search?: string) {
+    const q = search ? `?search=${encodeURIComponent(search)}` : "";
+    return get<{ data: Sekolah[] }>(`/sekolah${q}`);
   }
 
   async function create(payload: SekolahPayload) {

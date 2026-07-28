@@ -34,6 +34,7 @@ async function withProdiStats<T extends { id: string }>(universitasList: T[]) {
 
 export async function listUniversitas(req: Request, res: Response) {
   const sort = String(req.query.sort ?? 'ranking_tertinggi');
+  const search = String(req.query.search ?? '').trim();
 
   // default: ranking tertinggi => ranking ASC (1,2,3)
   let orderBy: any = { createdAt: 'desc' };
@@ -43,7 +44,18 @@ export async function listUniversitas(req: Request, res: Response) {
     orderBy = { ranking: 'desc' };
   }
 
+  const where = search
+    ? {
+        OR: [
+          { namaUniversitas: { contains: search, mode: 'insensitive' as const } },
+          { singkatan: { contains: search, mode: 'insensitive' as const } },
+          { provinsi: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }
+    : undefined;
+
   const universitas = await prisma.universitas.findMany({
+    where,
     orderBy,
   });
   const withStats = await withProdiStats(universitas);

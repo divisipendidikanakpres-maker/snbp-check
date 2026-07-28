@@ -349,6 +349,7 @@ export default async function HasilPage({
                 { name: "Peluang", value: stat.pct, fill: "oklch(66.7% 0.11 234.34)" },
                 { name: "Sisa", value: 100 - stat.pct, fill: "oklch(96.3% 0.042 128.79)" },
               ]}
+              showPercent={true}
             >
               <div className="flex items-center gap-1 leading-none font-medium">
                 <FileChartPie className="h-4 w-4" />

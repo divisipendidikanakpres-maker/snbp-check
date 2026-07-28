@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useHistory, type HistoryItem } from "@/hooks/useHistory";
+import { useSearch } from "@/hooks/useSearch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function RiwayatPage() {
   const { list } = useHistory();
@@ -11,10 +13,23 @@ export default function RiwayatPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { query, setQuery, searching } = useSearch(async (searchQuery) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await list(searchQuery);
+      setData(res.data);
+    } catch (err) {
+      setError((err as any)?.message ?? "Gagal memuat riwayat.");
+    } finally {
+      setLoading(false);
+    }
+  });
+
   const refresh = () => {
     setLoading(true);
     setError(null);
-    list()
+    list(query || undefined)
       .then((res) => {
         setData(res.data);
       })
@@ -38,6 +53,15 @@ export default function RiwayatPage() {
           <p className="text-sm text-muted-foreground">
             Menampilkan riwayat pemeriksaan yang dilakukan pengguna.
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Cari riwayat..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-64"
+          />
+          {searching && <span className="text-xs text-gray-500">Searching...</span>}
         </div>
         <Button variant="outline" onClick={refresh} disabled={loading}>
           Refresh

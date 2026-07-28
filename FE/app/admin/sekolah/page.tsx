@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSekolah, type Sekolah } from "@/hooks/useSekolah";
+import { useSearch } from "@/hooks/useSearch";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -40,8 +41,19 @@ export default function SekolahPage() {
     akreditasi: "-" as "A" | "B" | "C" | "-",
   });
 
+  const { query, setQuery, searching } = useSearch(async (searchQuery) => {
+    setLoading(true);
+    try {
+      const res = await list(searchQuery);
+      setData(res.data);
+    } finally {
+      setLoading(false);
+    }
+  });
+
   useEffect(() => {
-    list().then((res) => {
+    setLoading(true);
+    list(query || undefined).then((res) => {
       setData(res.data);
       setLoading(false);
     });
@@ -93,8 +105,17 @@ export default function SekolahPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-4">
         <h1 className="text-2xl font-bold">Manajemen Sekolah</h1>
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Cari sekolah..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-64"
+          />
+          {searching && <span className="text-xs text-gray-500">Searching...</span>}
+        </div>
         <Button onClick={openNewDialog}>+ Tambah Sekolah</Button>
       </div>
 

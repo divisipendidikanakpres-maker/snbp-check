@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useProdi, type Prodi } from "@/hooks/useProdi";
 import { useLookup, type LookupItem } from "@/hooks/useLookup";
 import { useUniversitas, type Universitas } from "@/hooks/useUniversitas";
+import { useSearch } from "@/hooks/useSearch";
 import { LEVEL_KEKETATAN_INFO } from "@/lib/level-keketatan";
 import { LookupSelect } from "@/components/admin/lookup-select";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,16 @@ export default function ProdiPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
 
+  const { query, setQuery, searching } = useSearch(async (searchQuery) => {
+    setLoading(true);
+    try {
+      const res = await list(universitasId, sort, searchQuery);
+      setData(res.data);
+    } finally {
+      setLoading(false);
+    }
+  });
+
   useEffect(() => {
     if (!universitasId) {
       router.replace("/admin/universitas");
@@ -71,7 +82,7 @@ export default function ProdiPage() {
     setLoading(true);
     Promise.all([
       getById(universitasId).then((res) => setUniversitas(res.data)),
-      list(universitasId, sort).then((res) => setData(res.data)),
+      list(universitasId, sort, query || undefined).then((res) => setData(res.data)),
       listKelompok().then((res) => setKelompokList(res.data)),
       listJenjang().then((res) => setJenjangList(res.data)),
     ])
@@ -148,7 +159,7 @@ export default function ProdiPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-4">
         <div>
           <Button
             variant="ghost"
@@ -171,6 +182,15 @@ export default function ProdiPage() {
               <option value="nilai_terendah">Nilai terendah</option>
             </select>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Cari prodi..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-64"
+          />
+          {searching && <span className="text-xs text-gray-500">Searching...</span>}
         </div>
         <Button onClick={openNewDialog}>+ Tambah Prodi</Button>
       </div>

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useUsers, type User } from "@/hooks/useUsers";
 import { useAuth } from "@/hooks/useAuth";
+import { useSearch } from "@/hooks/useSearch";
+import { Input } from "@/components/ui/input";
 import type { ApiError } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -58,10 +60,20 @@ export default function AkunPage() {
   const [editError, setEditError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const { query, setQuery, searching } = useSearch(async (searchQuery) => {
+    setLoading(true);
+    try {
+      const res = await list(searchQuery);
+      setUsers(res.data);
+    } finally {
+      setLoading(false);
+    }
+  });
+
   useEffect(() => {
     Promise.all([
       me().then((res) => setCurrentUserId(res.user.id)),
-      list().then((res) => setUsers(res.data)),
+      list(query || undefined).then((res) => setUsers(res.data)),
     ]).finally(() => setLoading(false));
   }, []);
 
@@ -114,7 +126,18 @@ export default function AkunPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Manajemen Akun</h1>
+      <div className="flex justify-between items-center gap-4">
+        <h1 className="text-2xl font-bold">Manajemen Akun</h1>
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Cari akun..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-64"
+          />
+          {searching && <span className="text-xs text-gray-500">Searching...</span>}
+        </div>
+      </div>
       <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>

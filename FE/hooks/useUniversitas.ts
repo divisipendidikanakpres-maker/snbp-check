@@ -22,8 +22,11 @@ export interface UniversitasPayload {
 export function useUniversitas() {
   const { get, post, put, del } = useApi();
 
-  async function list(sort?: string) {
-    const q = sort ? `?sort=${encodeURIComponent(sort)}` : "";
+  async function list(sort?: string, search?: string) {
+    const params = new URLSearchParams();
+    if (sort) params.set('sort', sort);
+    if (search) params.set('search', search);
+    const q = params.toString() ? `?${params.toString()}` : "";
     return get<{ data: Universitas[] }>(`/universitas${q}`);
   }
 

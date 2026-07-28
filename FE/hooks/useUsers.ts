@@ -21,8 +21,9 @@ export interface UpdateUserPayload {
 export function useUsers() {
   const { get, put, del } = useApi();
 
-  async function list() {
-    return get<{ data: User[] }>("/users");
+  async function list(search?: string) {
+    const q = search ? `?search=${encodeURIComponent(search)}` : "";
+    return get<{ data: User[] }>(`/users${q}`);
   }
 
   async function update(id: string, payload: UpdateUserPayload) {

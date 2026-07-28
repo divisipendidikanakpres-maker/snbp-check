@@ -18,7 +18,20 @@ const updateUserSchema = z.object({
 });
 
 export async function listUsers(req: Request, res: Response) {
+  const search = String(req.query.search ?? '').trim();
+
+  const where = search
+    ? {
+        OR: [
+          { fullName: { contains: search, mode: 'insensitive' as const } },
+          { email: { contains: search, mode: 'insensitive' as const } },
+          { phone: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }
+    : undefined;
+
   const users = await prisma.user.findMany({
+    where,
     select: { id: true, fullName: true, phone: true, email: true, role: true },
     orderBy: { createdAt: 'desc' },
   });

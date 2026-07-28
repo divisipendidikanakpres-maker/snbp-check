@@ -39,10 +39,11 @@ export interface ProdiPayload {
 export function useProdi() {
   const { get, post, put, del } = useApi();
 
-  async function list(universitasId?: string, sort?: string) {
+  async function list(universitasId?: string, sort?: string, search?: string) {
     const params = new URLSearchParams();
     if (universitasId) params.set('universitasId', universitasId);
     if (sort) params.set('sort', sort);
+    if (search) params.set('search', search);
     const query = params.toString() ? `?${params.toString()}` : "";
     return get<{ data: Prodi[] }>(`/prodi${query}`);
   }

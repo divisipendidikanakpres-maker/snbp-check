@@ -37,8 +37,9 @@ export function useHistory() {
     return post<{ message: string; data: HistoryItem }>("/riwayat", payload);
   }
 
-  async function list() {
-    return get<{ data: HistoryItem[] }>("/riwayat");
+  async function list(search?: string) {
+    const q = search ? `?search=${encodeURIComponent(search)}` : "";
+    return get<{ data: HistoryItem[] }>(`/riwayat${q}`);
   }
 
   return { create, list };

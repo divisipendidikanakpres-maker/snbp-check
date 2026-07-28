@@ -57,7 +57,21 @@ export async function createRiwayat(req: Request, res: Response) {
 }
 
 export async function listRiwayat(req: Request, res: Response) {
+  const search = String(req.query.search ?? '').trim();
+
+  const where = search
+    ? {
+        OR: [
+          { sekolahNama: { contains: search, mode: 'insensitive' as const } },
+          { universitasNama: { contains: search, mode: 'insensitive' as const } },
+          { prodiNama: { contains: search, mode: 'insensitive' as const } },
+          { user: { fullName: { contains: search, mode: 'insensitive' as const } } },
+        ],
+      }
+    : undefined;
+
   const riwayats = await prisma.riwayat.findMany({
+    where,
     include: {
       user: {
         select: {

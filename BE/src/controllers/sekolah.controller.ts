@@ -12,7 +12,19 @@ const sekolahSchema = z.object({
 type SekolahPayload = z.infer<typeof sekolahSchema>;
 
 export async function listSekolah(req: Request, res: Response) {
+  const search = String(req.query.search ?? '').trim();
+
+  const where = search
+    ? {
+        OR: [
+          { namaSekolah: { contains: search, mode: 'insensitive' as const } },
+          { akreditasi: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }
+    : undefined;
+
   const sekolah = await prisma.sekolah.findMany({
+    where,
     orderBy: { createdAt: 'desc' },
   });
   return res.status(200).json({ data: sekolah });

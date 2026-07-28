@@ -34,6 +34,7 @@ export function ChartPieDonutText({
   datakey,
   namakey,
   children,
+  showPercent = false,
 }: {
   chartData: ChartPieItem[];
   chartConfig: ChartConfig;
@@ -43,6 +44,7 @@ export function ChartPieDonutText({
   datakey: string;
   namakey: string;
   children: React.ReactNode;
+  showPercent?: boolean;
 }) {
 
   return (
@@ -82,7 +84,7 @@ export function ChartPieDonutText({
                           y={viewBox.cy}
                           className="fill-foreground text-3xl font-bold"
                         >
-                          {valFinal}
+                          {valFinal}{showPercent ? "%" : ""}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
