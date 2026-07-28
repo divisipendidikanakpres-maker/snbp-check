@@ -12,7 +12,11 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "seed:admin": "ts-node prisma/seed-admin.ts",
-    "seed:lookups": "ts-node prisma/seed-lookups.ts"
+    "seed:lookups": "ts-node prisma/seed-lookups.ts",
+    "seed:universitas": "ts-node prisma/seed-universitas.ts",
+    "seed:sekolah": "ts-node prisma/seed-sekolah.ts",
+    "seed:prodi": "ts-node prisma/seed-prodi.ts",
+    "seed:all": "npm run seed:lookups && npm run seed:admin && npm run seed:universitas && npm run seed:sekolah && npm run seed:prodi"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
