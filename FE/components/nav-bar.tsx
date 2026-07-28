@@ -35,6 +35,7 @@ export function NavBar({ title = "", user: propUser }: NavBarProps) {
       return;
     }
 
+    // call me() once on mount when no propUser
     me()
       .then(({ user }) => {
         setUser(user);
@@ -43,7 +44,7 @@ export function NavBar({ title = "", user: propUser }: NavBarProps) {
       .catch(() => {
         setLoading(false);
       });
-  }, [propUser, me]);
+  }, [propUser]);
 
   const handleLogout = async () => {
     await logout();

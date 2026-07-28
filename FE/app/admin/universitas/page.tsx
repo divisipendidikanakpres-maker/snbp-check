@@ -41,17 +41,19 @@ export default function UniversitasPage() {
   const { list, create, update, remove } = useUniversitas();
   const [data, setData] = useState<Universitas[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sort, setSort] = useState<'ranking_tertinggi' | 'ranking_terendah'>('ranking_tertinggi');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
   useEffect(() => {
-    list().then((res) => {
+    setLoading(true);
+    list(sort).then((res) => {
       setData(res.data);
       setLoading(false);
-    });
-  }, []);
+    }).catch(() => setLoading(false));
+  }, [sort]);
 
   const handleSave = async () => {
     const payload = {
@@ -112,7 +114,17 @@ export default function UniversitasPage() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Manajemen Universitas</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold">Manajemen Universitas</h1>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as any)}
+            className="text-sm rounded-md border px-2 py-1"
+          >
+            <option value="ranking_tertinggi">Ranking tertinggi</option>
+            <option value="ranking_terendah">Ranking terendah</option>
+          </select>
+        </div>
         <Button onClick={openNewDialog}>+ Tambah Universitas</Button>
       </div>
 

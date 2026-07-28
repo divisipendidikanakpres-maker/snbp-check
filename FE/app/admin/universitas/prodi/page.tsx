@@ -46,6 +46,7 @@ export default function ProdiPage() {
   const universitasId = searchParams.get("universitasId") ?? "";
 
   const { list, create, update, remove } = useProdi();
+  const [sort, setSort] = useState<'nilai_tertinggi' | 'nilai_terendah'>('nilai_tertinggi');
   const { listKelompok, createKelompok, listJenjang, createJenjang } = useLookup();
   const { getById } = useUniversitas();
 
@@ -67,13 +68,15 @@ export default function ProdiPage() {
       return;
     }
 
+    setLoading(true);
     Promise.all([
       getById(universitasId).then((res) => setUniversitas(res.data)),
-      list(universitasId).then((res) => setData(res.data)),
+      list(universitasId, sort).then((res) => setData(res.data)),
       listKelompok().then((res) => setKelompokList(res.data)),
       listJenjang().then((res) => setJenjangList(res.data)),
-    ]).finally(() => setLoading(false));
-  }, [universitasId]);
+    ])
+      .finally(() => setLoading(false));
+  }, [universitasId, sort]);
 
   const openNewDialog = () => {
     setEditingId(null);
@@ -155,9 +158,19 @@ export default function ProdiPage() {
           >
             ← Kembali
           </Button>
-          <h1 className="text-2xl font-bold">
-            Manajemen Prodi{universitas ? ` — ${universitas.namaUniversitas}` : ""}
-          </h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold">
+              Manajemen Prodi{universitas ? ` — ${universitas.namaUniversitas}` : ""}
+            </h1>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as any)}
+              className="text-sm rounded-md border px-2 py-1"
+            >
+              <option value="nilai_tertinggi">Nilai tertinggi</option>
+              <option value="nilai_terendah">Nilai terendah</option>
+            </select>
+          </div>
         </div>
         <Button onClick={openNewDialog}>+ Tambah Prodi</Button>
       </div>

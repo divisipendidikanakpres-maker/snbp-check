@@ -383,7 +383,7 @@ export default function Home() {
     const universitas = universitasList.find((u) => u.id === val);
     setSelectedUniversitas(universitas ?? null);
     if (universitas) {
-      listProdi(universitas.id)
+      listProdi(universitas.id, 'nilai_tertinggi')
         .then((res) => setProdiList(res.data))
         .catch(() => setProdiList([]));
     } else {
@@ -457,7 +457,7 @@ export default function Home() {
       // ignore history errors for now
     });
 
-    router.push(`/hasil?${params.toString()}`);
+    router.push(`/beranda/hasil?${params.toString()}`);
   }
 
   return (

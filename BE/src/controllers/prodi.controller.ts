@@ -13,11 +13,19 @@ const prodiSchema = z.object({
 
 export async function listProdi(req: Request, res: Response) {
   const { universitasId } = req.query;
+  const sort = String(req.query.sort ?? 'nilai_tertinggi');
+
+  let orderBy: any = { createdAt: 'desc' };
+  if (sort === 'nilai_tertinggi') {
+    orderBy = { nilai: 'desc' };
+  } else if (sort === 'nilai_terendah') {
+    orderBy = { nilai: 'asc' };
+  }
 
   const data = await prisma.prodi.findMany({
     where: universitasId ? { universitasId: String(universitasId) } : undefined,
     include: { universitas: true, kelompok: true, jenjang: true },
-    orderBy: { createdAt: 'desc' },
+    orderBy,
   });
 
   return res.status(200).json({ data });
