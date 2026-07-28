@@ -40,13 +40,13 @@ npm run seed:lookups
 # Seed admin user (requires env vars)
 npm run seed:admin
 
-# Seed 20 universities
+# Seed 50 universities
 npm run seed:universitas
 
 # Seed 37 schools
 npm run seed:sekolah
 
-# Seed 63 prodi entries
+# Seed 171+ prodi entries
 npm run seed:prodi
 ```
 
@@ -59,12 +59,16 @@ npm run seed:all
 
 ## Data Sources
 
-### Universities (seed-universitas.ts)
-- **Source**: FE/lib/data-univ.ts
-- **Count**: 20 universities
+### Universities (seed-universitas-complete.ts)
+- **Source**: SNBP official ranking data (complete 50 PTN universities)
+- **Count**: 50 PTN universities
 - **Fields**: namaUniversitas, singkatan (abbreviation), provinsi, ranking
-- **Examples**: UI, ITB, UGM, IPB, UNAIR, UNDIP, UNPAD, UB, UNHAS, etc.
-- **Note**: `estimasiNilaiMin` excluded - system auto-computes via prodi entries
+- **Coverage**:
+  - Top 10: UI, UGM, ITB, IPB, ITS, Unpad, Unair, Undip, UB, UNS
+  - Top 20: Adds Unhas, UPI, UNY, USU, Unand, UNJ, Unnes, Unsoed, UM, Unud
+  - Top 40: Regional universities across all Indonesian provinces
+  - Top 50: Specialized (UIN Jakarta, UIN Yogya, UIN Malang, ISI Yogya, Polban)
+- **Note**: System auto-computes nilai rata-rata via prodi entries
 
 ### Schools (seed-sekolah.ts)
 - **Source**: FE/lib/data-sekolah.ts
@@ -74,10 +78,15 @@ npm run seed:all
 - **Examples**: SMAN 1 Bekasi, SMKN 2 Bekasi, SMK Negeri 13 Bekasi, etc.
 - **Note**: `kecamatan` (district) field excluded - not needed in DB
 
-### Prodi (seed-prodi.ts)
-- **Source**: FE/lib/data-univ.ts
-- **Count**: 63 program studi entries
+### Prodi (seed-prodi-complete.ts)
+- **Source**: SNBP official ranking data (complete prodi listings)
+- **Count**: 171+ program studi entries (representative sample)
+- **Coverage**: 
+  - Detailed prodi for top 5 universities: UI (42), UGM (39), ITB (23), IPB (20), ITS (21)
+  - Plus Polban vocational programs (10 D3/D4 entries)
 - **Fields**: universitasId, programStudi, kelompokId, jenjangId, nilai, levelKeketatan
+- **Jenjang**: S1 (majority) and D3/D4 (vocational)
+- **Kelompok**: Saintek, Soshum, Seni, Vokasi, Agama
 - **Auto-computed**: levelKeketatan based on nilai thresholds:
   - ≥93: SANGAT_KETAT (red)
   - 88-92.9: KETAT (yellow)
@@ -137,13 +146,18 @@ Or add seed command to Vercel deploy hooks in `vercel.json` (optional).
 To modify seed data, edit the SNBP_DATA, UNIVERSITAS_DATA, SEKOLAH_DATA, or PRODI_DATA arrays in each seed file.
 
 ### Adding more universities
-Edit `BE/prisma/seed-universitas.ts` UNIVERSITAS_DATA array - maintain {namaUniversitas, singkatan, provinsi, ranking} structure.
+Edit `BE/prisma/seed-universitas-complete.ts` UNIVERSITAS_DATA array - maintain {namaUniversitas, singkatan, provinsi, ranking} structure.
 
 ### Adding more schools
 Edit `BE/prisma/seed-sekolah.ts` SEKOLAH_DATA array - maintain {namaSekolah, akreditasi} structure.
 
 ### Adding more prodi
-Edit `BE/prisma/seed-prodi.ts` PRODI_DATA array - maintain {universitas, programStudi, jenjang, kelompok, nilai} structure. Level keketatan auto-computes from nilai.
+Edit `BE/prisma/seed-prodi-complete.ts` PRODI_DATA array - maintain {universitas, programStudi, jenjang, kelompok, nilai} structure. Level keketatan auto-computes from nilai.
+
+Note: This seed file has 171+ entries. For production with all 860 SNBP prodi entries, consider:
+1. Splitting data into multiple files (e.g., by university tier or kelompok)
+2. Loading prodi data from a CSV or JSON file instead of hardcoded arrays
+3. Filtering to the most popular/common prodi per university
 
 ## Next Steps
 
