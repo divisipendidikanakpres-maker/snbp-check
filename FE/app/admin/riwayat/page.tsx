@@ -18,6 +18,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { exportRowsToExcel } from "@/lib/export-excel";
 
+function formatTimestamp(value: string | Date) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return `${date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })}, ${date.toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })}`;
+}
+
 export default function RiwayatPage() {
   const { list, remove } = useHistory();
   const [data, setData] = useState<HistoryItem[]>([]);
@@ -79,7 +94,7 @@ export default function RiwayatPage() {
       "Program Studi": item.prodiNama,
       Persentase: `${item.persentase}%`,
       "Nilai Akhir": item.nilaiAkhir,
-      Tanggal: new Date(item.createdAt).toLocaleString("id-ID"),
+      Tanggal: formatTimestamp(item.createdAt),
     }));
 
     exportRowsToExcel(rows, `riwayat-${new Date().toISOString().slice(0, 10)}`);
@@ -146,7 +161,7 @@ export default function RiwayatPage() {
                     <TableCell>{item.prodiNama}</TableCell>
                     <TableCell>{item.persentase}%</TableCell>
                     <TableCell>{item.nilaiAkhir.toFixed(1)}</TableCell>
-                    <TableCell>{new Date(item.createdAt).toLocaleString("id-ID")}</TableCell>
+                   <TableCell>{formatTimestamp(item.createdAt)}</TableCell>
                    <TableCell>
                      <div className="flex gap-2">
                        <Button variant="destructive" size="sm" onClick={() => setDeleting(item.id)}>

@@ -181,20 +181,26 @@ export default function ProdiPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4 md:gap-0 md:flex-row md:justify-between md:items-center">
-        <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push("/admin/universitas")}
-            className="mb-1 -ml-2"
-          >
-            ← Kembali
-          </Button>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/admin/universitas")}
+              className="mb-1 -ml-2"
+            >
+              ← Kembali
+            </Button>
             <h1 className="text-xl sm:text-2xl font-bold">
               Manajemen Prodi{universitas ? ` — ${universitas.namaUniversitas}` : ""}
             </h1>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Urutkan:</label>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as any)}
@@ -204,19 +210,20 @@ export default function ProdiPage() {
               <option value="nilai_terendah">Nilai terendah</option>
             </select>
           </div>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
-          <Input
-            placeholder="Cari prodi..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full sm:w-64"
-          />
-          {searching && <span className="text-xs text-gray-500">Searching...</span>}
-          <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
-            Export Excel
-          </Button>
-          <Button onClick={openNewDialog} className="w-full sm:w-auto">+ Tambah</Button>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-2">
+            <Input
+              placeholder="Cari prodi..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full sm:w-64"
+            />
+            {searching && <span className="text-xs text-gray-500">Searching...</span>}
+            <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
+              Export Excel
+            </Button>
+            <Button onClick={openNewDialog} className="w-full sm:w-auto">+ Tambah</Button>
+          </div>
         </div>
       </div>
 
