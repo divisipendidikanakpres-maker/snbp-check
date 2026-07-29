@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import type { ApiError } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { exportRowsToExcel } from "@/lib/export-excel";
 import {
   InputGroup,
   InputGroupAddon,
@@ -105,6 +106,17 @@ export default function AkunPage() {
     }
   };
 
+  const handleExport = () => {
+    const rows = users.map((user) => ({
+      Nama: user.fullName,
+      Telepon: user.phone,
+      Email: user.email,
+      Role: user.role,
+    }));
+
+    exportRowsToExcel(rows, `akun-${new Date().toISOString().slice(0, 10)}`);
+  };
+
   const openEdit = (user: User) => {
     setEditing(user);
     setEditForm({ fullName: user.fullName, email: user.email, password: "" });
@@ -145,6 +157,9 @@ export default function AkunPage() {
             className="w-full sm:w-64"
           />
           {searching && <span className="text-xs text-gray-500">Searching...</span>}
+          <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
+            Export Excel
+          </Button>
         </div>
       </div>
       <div className="border rounded-lg overflow-x-auto">

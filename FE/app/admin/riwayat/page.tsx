@@ -16,6 +16,7 @@ import { Pagination } from "@/components/admin/pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { exportRowsToExcel } from "@/lib/export-excel";
 
 export default function RiwayatPage() {
   const { list, remove } = useHistory();
@@ -70,6 +71,20 @@ export default function RiwayatPage() {
     }
   };
 
+  const handleExport = () => {
+    const rows = data.map((item) => ({
+      "Nama Pengguna": item.user?.fullName ?? "-",
+      Sekolah: item.sekolahNama,
+      Universitas: item.universitasNama,
+      "Program Studi": item.prodiNama,
+      Persentase: `${item.persentase}%`,
+      "Nilai Akhir": item.nilaiAkhir,
+      Tanggal: new Date(item.createdAt).toLocaleString("id-ID"),
+    }));
+
+    exportRowsToExcel(rows, `riwayat-${new Date().toISOString().slice(0, 10)}`);
+  };
+
   useEffect(() => {
     refresh();
   }, [page, limit]);
@@ -91,6 +106,9 @@ export default function RiwayatPage() {
             className="w-full sm:w-64"
           />
           {searching && <span className="text-xs text-gray-500">Searching...</span>}
+          <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
+            Export Excel
+          </Button>
           <Button variant="outline" onClick={refresh} disabled={loading} className="w-full sm:w-auto">
             Refresh
           </Button>

@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { exportRowsToExcel } from "@/lib/export-excel";
 
 export default function SekolahPage() {
   const { list, create, update, remove } = useSekolah();
@@ -107,6 +108,15 @@ export default function SekolahPage() {
     setDialogOpen(true);
   };
 
+  const handleExport = () => {
+    const rows = data.map((sekolah) => ({
+      "Nama Sekolah": sekolah.namaSekolah,
+      Akreditasi: sekolah.akreditasi,
+    }));
+
+    exportRowsToExcel(rows, `sekolah-${new Date().toISOString().slice(0, 10)}`);
+  };
+
   if (loading) return <div className="p-4">Loading...</div>;
 
   return (
@@ -121,6 +131,9 @@ export default function SekolahPage() {
             className="w-full sm:w-64"
           />
           {searching && <span className="text-xs text-gray-500">Searching...</span>}
+          <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
+            Export Excel
+          </Button>
           <Button onClick={openNewDialog} className="w-full sm:w-auto">+ Tambah</Button>
         </div>
       </div>

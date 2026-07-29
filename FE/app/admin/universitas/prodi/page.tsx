@@ -13,6 +13,7 @@ import { LookupSelect } from "@/components/admin/lookup-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { exportRowsToExcel } from "@/lib/export-excel";
 import {
   Table,
   TableBody,
@@ -164,6 +165,18 @@ export default function ProdiPage() {
     }
   };
 
+  const handleExport = () => {
+    const rows = data.map((prodi) => ({
+      "Program Studi": prodi.programStudi,
+      Jenjang: prodi.jenjang.nama,
+      Kelompok: prodi.kelompok.nama,
+      Nilai: prodi.nilai,
+      "Level Keketatan": LEVEL_KEKETATAN_INFO[prodi.levelKeketatan]?.label ?? prodi.levelKeketatan,
+    }));
+
+    exportRowsToExcel(rows, `prodi-${new Date().toISOString().slice(0, 10)}`);
+  };
+
   if (loading) return <div className="p-4">Loading...</div>;
 
   return (
@@ -200,6 +213,9 @@ export default function ProdiPage() {
             className="w-full sm:w-64"
           />
           {searching && <span className="text-xs text-gray-500">Searching...</span>}
+          <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
+            Export Excel
+          </Button>
           <Button onClick={openNewDialog} className="w-full sm:w-auto">+ Tambah</Button>
         </div>
       </div>

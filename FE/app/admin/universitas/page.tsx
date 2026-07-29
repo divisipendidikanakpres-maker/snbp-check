@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { exportRowsToExcel } from "@/lib/export-excel";
 
 const EMPTY_FORM = {
   namaUniversitas: "",
@@ -126,6 +127,19 @@ export default function UniversitasPage() {
     router.push(`/admin/universitas/prodi?universitasId=${univ.id}`);
   };
 
+  const handleExport = () => {
+    const rows = data.map((univ) => ({
+      Ranking: univ.ranking ?? "-",
+      "Nama Universitas": univ.namaUniversitas,
+      Singkatan: univ.singkatan,
+      Provinsi: univ.provinsi,
+      "Jumlah Prodi": univ.jumlahProdi,
+      "Nilai Rata-rata": univ.nilaiRataRata !== null ? univ.nilaiRataRata : "-",
+    }));
+
+    exportRowsToExcel(rows, `universitas-${new Date().toISOString().slice(0, 10)}`);
+  };
+
   if (loading) return <div className="p-4">Loading...</div>;
 
   return (
@@ -150,6 +164,9 @@ export default function UniversitasPage() {
             className="w-full sm:w-64"
           />
           {searching && <span className="text-xs text-gray-500">Searching...</span>}
+          <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
+            Export Excel
+          </Button>
           <Button onClick={openNewDialog} className="w-full sm:w-auto">+ Tambah</Button>
         </div>
       </div>
