@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { KURIKULUM_DATA } from "@/lib/data-kurikulum";
 import { SEKOLAH_DATA, SekolahItem } from "@/lib/data-sekolah";
 import { badgeClass, getStatusInfo, slugify } from "@/lib/utils-snbp";
+import { LEVEL_KEKETATAN_INFO } from "@/lib/level-keketatan";
 import { useSekolah } from "@/hooks/useSekolah";
 import { useUniversitas, type Universitas } from "@/hooks/useUniversitas";
 import { useProdi, type Prodi } from "@/hooks/useProdi";
@@ -110,15 +111,51 @@ export default function Home() {
     kurikulum?: boolean;
   }>({});
 
+  // --- Infinite remote loading states for selects (schools, universities, prodi) ---
+  const [schoolPage, setSchoolPage] = useState(1);
+  const [schoolLimit] = useState(20);
+  const [schoolTotal, setSchoolTotal] = useState<number | null>(null);
+  const [schoolLoadingMore, setSchoolLoadingMore] = useState(false);
+  const [schoolQuery, setSchoolQuery] = useState("");
+
+  const [uniPage, setUniPage] = useState(1);
+  const [uniLimit] = useState(20);
+  const [uniTotal, setUniTotal] = useState<number | null>(null);
+  const [uniLoadingMore, setUniLoadingMore] = useState(false);
+  const [uniQuery, setUniQuery] = useState("");
+
+  const [prodiPage, setProdiPage] = useState(1);
+  const [prodiLimit] = useState(20);
+  const [prodiTotal, setProdiTotal] = useState<number | null>(null);
+  const [prodiLoadingMore, setProdiLoadingMore] = useState(false);
+  const [prodiQuery, setProdiQuery] = useState("");
+
+  // initial load first pages
   useEffect(() => {
-    listSekolah()
-      .then((res) => setSekolahList(res.data))
+    listSekolah(undefined, 1, schoolLimit)
+      .then((res) => {
+        setSekolahList(res.data);
+        setSchoolTotal(res.total);
+        setSchoolPage(1);
+      })
       .catch(() => setSekolahList([]));
 
-    listUniversitas()
-      .then((res) => setUniversitasList(res.data))
+    listUniversitas(undefined, undefined, 1, uniLimit)
+      .then((res) => {
+        setUniversitasList(res.data);
+        setUniTotal(res.total);
+        setUniPage(1);
+      })
       .catch(() => setUniversitasList([]));
   }, []);
+
+  // reset prodi list when selected university changes
+  useEffect(() => {
+    setProdiList([]);
+    setProdiPage(1);
+    setProdiTotal(null);
+    setProdiQuery("");
+  }, [selectedUniversitas]);
 
   const schoolItems = useMemo(() => {
     return sekolahList.map((s) => ({
@@ -207,16 +244,12 @@ export default function Home() {
       const value = parseFloat(raw);
 
       if (raw === "" || isNaN(value)) {
-        nextErrors[id] = true;
-        hasError = true;
-        return;
-      }
+          nextErrors[id] = true;
+          hasError = true;
+          return;
+        }
 
-      if (value < 60 || value > 100) {
-        nextErrors[id] = true;
-        hasError = true;
-        return;
-      }
+        // Accept any numeric value for rapor (no range restriction here).
 
       nextErrors[id] = false;
       total += value;
@@ -345,6 +378,149 @@ export default function Home() {
     setStep(4);
   }
 
+  // --- helper functions for infinite remote loading ---
+  async function fetchSchoolPage(pageNum: number, q?: string) {
+    try {
+      const res = await listSekolah(q || undefined, pageNum, schoolLimit);
+      return res;
+    } catch (e) {
+      return { data: [], total: 0, page: pageNum, limit: schoolLimit } as any;
+    }
+  }
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      // search changed, reload first page
+      setSchoolLoadingMore(true);
+      fetchSchoolPage(1, schoolQuery)
+        .then((res) => {
+          setSekolahList(res.data);
+          setSchoolTotal(res.total);
+          setSchoolPage(1);
+        })
+        .finally(() => setSchoolLoadingMore(false));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [schoolQuery]);
+
+  async function loadMoreSchool() {
+    if (schoolLoadingMore) return;
+    if (schoolTotal !== null && sekolahList.length >= schoolTotal) return;
+    setSchoolLoadingMore(true);
+    const next = schoolPage + 1;
+    try {
+      const res = await fetchSchoolPage(next, schoolQuery);
+      setSekolahList((prev) => [...prev, ...res.data]);
+      setSchoolPage(next);
+      setSchoolTotal(res.total);
+    } finally {
+      setSchoolLoadingMore(false);
+    }
+  }
+
+  function handleSchoolScroll(e: any) {
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop <= el.clientHeight + 80) {
+      loadMoreSchool();
+    }
+  }
+
+  // Universities
+  async function fetchUniPage(pageNum: number, q?: string) {
+    try {
+      const res = await listUniversitas(undefined, q || undefined, pageNum, uniLimit);
+      return res;
+    } catch (e) {
+      return { data: [], total: 0, page: pageNum, limit: uniLimit } as any;
+    }
+  }
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setUniLoadingMore(true);
+      fetchUniPage(1, uniQuery)
+        .then((res) => {
+          setUniversitasList(res.data);
+          setUniTotal(res.total);
+          setUniPage(1);
+        })
+        .finally(() => setUniLoadingMore(false));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [uniQuery]);
+
+  async function loadMoreUni() {
+    if (uniLoadingMore) return;
+    if (uniTotal !== null && universitasList.length >= uniTotal) return;
+    setUniLoadingMore(true);
+    const next = uniPage + 1;
+    try {
+      const res = await fetchUniPage(next, uniQuery);
+      setUniversitasList((prev) => [...prev, ...res.data]);
+      setUniPage(next);
+      setUniTotal(res.total);
+    } finally {
+      setUniLoadingMore(false);
+    }
+  }
+
+  function handleUniScroll(e: any) {
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop <= el.clientHeight + 80) {
+      loadMoreUni();
+    }
+  }
+
+  // Prodi (per-universitas)
+  async function fetchProdiPage(pageNum: number, uniId?: string, q?: string) {
+    if (!uniId) return { data: [], total: 0, page: pageNum, limit: prodiLimit } as any;
+    try {
+      const res = await listProdi(uniId, 'nilai_tertinggi', q || undefined, pageNum, prodiLimit);
+      return res;
+    } catch (e) {
+      return { data: [], total: 0, page: pageNum, limit: prodiLimit } as any;
+    }
+  }
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      // prodiQuery changed, reload first page for currently selected university
+      if (!selectedUniversitas) return;
+      setProdiLoadingMore(true);
+      fetchProdiPage(1, selectedUniversitas.id, prodiQuery)
+        .then((res) => {
+          setProdiList(res.data);
+          setProdiTotal(res.total);
+          setProdiPage(1);
+        })
+        .finally(() => setProdiLoadingMore(false));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [prodiQuery, selectedUniversitas]);
+
+  async function loadMoreProdi() {
+    if (prodiLoadingMore) return;
+    if (!selectedUniversitas) return;
+    if (prodiTotal !== null && prodiList.length >= prodiTotal) return;
+    setProdiLoadingMore(true);
+    const next = prodiPage + 1;
+    try {
+      const res = await fetchProdiPage(next, selectedUniversitas.id, prodiQuery);
+      setProdiList((prev) => [...prev, ...res.data]);
+      setProdiPage(next);
+      setProdiTotal(res.total);
+    } finally {
+      setProdiLoadingMore(false);
+    }
+  }
+
+  function handleProdiScroll(e: any) {
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop <= el.clientHeight + 80) {
+      loadMoreProdi();
+    }
+  }
+
   const ptnItems = useMemo(() => {
     return universitasList
       .slice()
@@ -383,9 +559,14 @@ export default function Home() {
     const universitas = universitasList.find((u) => u.id === val);
     setSelectedUniversitas(universitas ?? null);
     if (universitas) {
-      listProdi(universitas.id, 'nilai_tertinggi')
-        .then((res) => setProdiList(res.data))
-        .catch(() => setProdiList([]));
+        // load first page of prodi for this university
+        listProdi(universitas.id, 'nilai_tertinggi', undefined, 1, prodiLimit)
+          .then((res) => {
+            setProdiList(res.data);
+            setProdiTotal(res.total);
+            setProdiPage(1);
+          })
+          .catch(() => setProdiList([]));
     } else {
       setProdiList([]);
     }
@@ -564,13 +745,20 @@ export default function Home() {
                     <ComboboxInput
                       showTrigger={false}
                       placeholder="Cari sekolah..."
+                      onInput={(e: any) => {
+                        const v = e.target.value ?? "";
+                        setSchoolQuery(v);
+                      }}
                     />
                     <ComboboxEmpty>Sekolah tidak ditemukan.</ComboboxEmpty>
-                    <ComboboxList>
+                    <ComboboxList onScroll={handleSchoolScroll}>
                       {(item) => (
                         <ComboboxItem key={item.value} value={item}>
                           {item.label}
                         </ComboboxItem>
+                      )}
+                      {schoolLoadingMore && (
+                        <div className="px-3 py-2 text-sm text-center text-gray-500">Memuat...</div>
                       )}
                     </ComboboxList>
                   </ComboboxContent>
@@ -683,8 +871,6 @@ export default function Home() {
                   </Label>
                   <Input
                     type="number"
-                    min={60}
-                    max={100}
                     step={0.1}
                     placeholder="contoh: 88"
                     value={rapor[id] ?? ""}
@@ -905,15 +1091,19 @@ export default function Home() {
                         <ComboboxInput
                           showTrigger={false}
                           placeholder="Cari universitas..."
+                          onInput={(e: any) => setUniQuery(e.target.value ?? "")}
                         />
                         <ComboboxEmpty>
                           Universitas tidak ditemukan.
                         </ComboboxEmpty>
-                        <ComboboxList>
+                        <ComboboxList onScroll={handleUniScroll}>
                           {(item) => (
                             <ComboboxItem key={item.value} value={item}>
                               {item.label}
                             </ComboboxItem>
+                          )}
+                          {uniLoadingMore && (
+                            <div className="px-3 py-2 text-sm text-center text-gray-500">Memuat...</div>
                           )}
                         </ComboboxList>
                       </ComboboxContent>
@@ -946,15 +1136,19 @@ export default function Home() {
                         <ComboboxInput
                           showTrigger={false}
                           placeholder="Cari program studi..."
+                          onInput={(e: any) => setProdiQuery(e.target.value ?? "")}
                         />
                         <ComboboxEmpty>
                           Program studi tidak ditemukan.
                         </ComboboxEmpty>
-                        <ComboboxList>
+                        <ComboboxList onScroll={handleProdiScroll}>
                           {(item) => (
                             <ComboboxItem key={item.value} value={item}>
                               {item.label}
                             </ComboboxItem>
+                          )}
+                          {prodiLoadingMore && (
+                            <div className="px-3 py-2 text-sm text-center text-gray-500">Memuat...</div>
                           )}
                         </ComboboxList>
                       </ComboboxContent>
@@ -981,7 +1175,7 @@ export default function Home() {
                       <span
                         className={badgeClass(currentJurusan.levelKeketatan)}
                       >
-                        {currentJurusan.levelKeketatan}
+                        {LEVEL_KEKETATAN_INFO[currentJurusan.levelKeketatan].label}
                       </span>
                     </div>
                   </div>
@@ -1072,7 +1266,7 @@ export default function Home() {
                             hasilRasionalisasi.levelKeketatan as any,
                           )}
                         >
-                          {hasilRasionalisasi.levelKeketatan}
+                          {LEVEL_KEKETATAN_INFO[hasilRasionalisasi.levelKeketatan as any].label}
                         </span>
                         <span className="text-[11px] text-gray-400">
                           {hasilRasionalisasi.referensiRanking}

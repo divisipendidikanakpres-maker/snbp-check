@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { ChartConfig } from "@/components/ui/chart";
 import { badgeClass, getStatusInfo } from "@/lib/utils-snbp";
+import { LEVEL_KEKETATAN_INFO } from "@/lib/level-keketatan";
 import type { LevelKeketatan } from "@/hooks/useProdi";
 import { FileChartPie } from "lucide-react";
 import Link from "next/link";
@@ -179,7 +180,7 @@ export default async function HasilPage({
               </div>
               <div className="mt-2 inline-flex items-center gap-2">
                 <span className={badgeClass(prodi.levelKeketatan)}>
-                  {prodi.levelKeketatan}
+                  {LEVEL_KEKETATAN_INFO[prodi.levelKeketatan].label}
                 </span>
               </div>
             </div>
