@@ -93,3 +93,18 @@ export async function listRiwayat(req: Request, res: Response) {
 
   return res.status(200).json({ data: riwayats, total, page, limit });
 }
+
+export async function deleteRiwayat(req: Request, res: Response) {
+  const id = String(req.params.id || '');
+  if (!id) {
+    return res.status(400).json({ message: 'ID riwayat tidak valid.' });
+  }
+
+  const existing = await prisma.riwayat.findUnique({ where: { id } });
+  if (!existing) {
+    return res.status(404).json({ message: 'Riwayat tidak ditemukan.' });
+  }
+
+  await prisma.riwayat.delete({ where: { id } });
+  return res.status(200).json({ message: 'Riwayat berhasil dihapus.' });
+}

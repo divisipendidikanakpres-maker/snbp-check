@@ -3,6 +3,14 @@
 import { useEffect, useState } from "react";
 import { useHistory, type HistoryItem } from "@/hooks/useHistory";
 import { useSearch } from "@/hooks/useSearch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { usePagination } from "@/hooks/usePagination";
 import { Pagination } from "@/components/admin/pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,12 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function RiwayatPage() {
-  const { list } = useHistory();
+  const { list, remove } = useHistory();
   const [data, setData] = useState<HistoryItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { page, limit, handlePageChange, handleLimitChange } = usePagination();
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const { query, setQuery, searching } = useSearch(async (searchQuery) => {
     setLoading(true);
@@ -45,6 +54,20 @@ export default function RiwayatPage() {
       .finally(() => {
         setLoading(false);
       });
+  };
+
+  const handleDelete = async (id: string) => {
+    setLoading(true);
+    try {
+      await remove(id);
+      // refresh list after delete
+      refresh();
+      setDeleting(null);
+    } catch (err) {
+      setError((err as any)?.message ?? "Gagal menghapus riwayat.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -93,6 +116,7 @@ export default function RiwayatPage() {
                   <TableHead>Persentase</TableHead>
                   <TableHead>Nilai Akhir</TableHead>
                   <TableHead>Tanggal</TableHead>
+                  <TableHead>Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -105,6 +129,13 @@ export default function RiwayatPage() {
                     <TableCell>{item.persentase}%</TableCell>
                     <TableCell>{item.nilaiAkhir.toFixed(1)}</TableCell>
                     <TableCell>{new Date(item.createdAt).toLocaleString("id-ID")}</TableCell>
+                   <TableCell>
+                     <div className="flex gap-2">
+                       <Button variant="destructive" size="sm" onClick={() => setDeleting(item.id)}>
+                         Hapus
+                       </Button>
+                     </div>
+                   </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -120,6 +151,24 @@ export default function RiwayatPage() {
           />
         </>
       )}
-    </div>
-  );
+
+     <AlertDialog open={!!deleting}>
+       <AlertDialogContent>
+         <AlertDialogTitle>Hapus Riwayat</AlertDialogTitle>
+         <AlertDialogDescription>
+           Yakin ingin menghapus riwayat ini? Aksi tidak bisa dibatalkan.
+         </AlertDialogDescription>
+         <div className="flex gap-2 justify-end">
+           <AlertDialogCancel onClick={() => setDeleting(null)}>
+             Batal
+           </AlertDialogCancel>
+           <AlertDialogAction onClick={() => deleting && handleDelete(deleting)}>
+             Hapus
+           </AlertDialogAction>
+         </div>
+       </AlertDialogContent>
+     </AlertDialog>
+
+   </div>
+ );
 }

@@ -38,7 +38,7 @@ export interface PaginatedResponse<T> {
 }
 
 export function useHistory() {
-  const { get, post } = useApi();
+  const { get, post, del } = useApi();
 
   async function create(payload: HistoryPayload) {
     return post<{ message: string; data: HistoryItem }>("/riwayat", payload);
@@ -53,5 +53,9 @@ export function useHistory() {
     return get<PaginatedResponse<HistoryItem>>(`/riwayat${q}`);
   }
 
-  return { create, list };
+  async function remove(id: string) {
+    return del<{ message: string }>(`/riwayat/${id}`);
+  }
+
+  return { create, list, remove };
 }
