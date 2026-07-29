@@ -208,6 +208,13 @@ export default function Home() {
     });
   }
 
+  // helper to safely read label from LEVEL_KEKETATAN_INFO without TS index errors
+  function getLevelLabel(level?: string | null) {
+    if (!level) return "";
+    const key = level as keyof typeof LEVEL_KEKETATAN_INFO;
+    return (LEVEL_KEKETATAN_INFO[key] && LEVEL_KEKETATAN_INFO[key].label) || String(level);
+  }
+
   function simpanSekolahDanNext() {
     const errors: { sekolah?: boolean; kurikulum?: boolean } = {};
 
@@ -752,11 +759,11 @@ export default function Home() {
                     />
                     <ComboboxEmpty>Sekolah tidak ditemukan.</ComboboxEmpty>
                     <ComboboxList onScroll={handleSchoolScroll}>
-                      {(item) => (
+                      {schoolItems.map((item) => (
                         <ComboboxItem key={item.value} value={item}>
                           {item.label}
                         </ComboboxItem>
-                      )}
+                      ))}
                       {schoolLoadingMore && (
                         <div className="px-3 py-2 text-sm text-center text-gray-500">Memuat...</div>
                       )}
@@ -813,11 +820,11 @@ export default function Home() {
                     />
                     <ComboboxEmpty>Kurikulum tidak ditemukan.</ComboboxEmpty>
                     <ComboboxList>
-                      {(item) => (
+                      {KURIKULUM_DATA.map((item) => (
                         <ComboboxItem key={item.value} value={item}>
                           {item.label}
                         </ComboboxItem>
-                      )}
+                      ))}
                     </ComboboxList>
                   </ComboboxContent>
                 </Combobox>
@@ -1097,11 +1104,11 @@ export default function Home() {
                           Universitas tidak ditemukan.
                         </ComboboxEmpty>
                         <ComboboxList onScroll={handleUniScroll}>
-                          {(item) => (
+                          {ptnItems.map((item) => (
                             <ComboboxItem key={item.value} value={item}>
                               {item.label}
                             </ComboboxItem>
-                          )}
+                          ))}
                           {uniLoadingMore && (
                             <div className="px-3 py-2 text-sm text-center text-gray-500">Memuat...</div>
                           )}
@@ -1142,11 +1149,11 @@ export default function Home() {
                           Program studi tidak ditemukan.
                         </ComboboxEmpty>
                         <ComboboxList onScroll={handleProdiScroll}>
-                          {(item) => (
+                          {jurusanItems.map((item) => (
                             <ComboboxItem key={item.value} value={item}>
                               {item.label}
                             </ComboboxItem>
-                          )}
+                          ))}
                           {prodiLoadingMore && (
                             <div className="px-3 py-2 text-sm text-center text-gray-500">Memuat...</div>
                           )}
@@ -1175,7 +1182,7 @@ export default function Home() {
                       <span
                         className={badgeClass(currentJurusan.levelKeketatan)}
                       >
-                        {LEVEL_KEKETATAN_INFO[currentJurusan.levelKeketatan].label}
+                        {getLevelLabel(currentJurusan.levelKeketatan)}
                       </span>
                     </div>
                   </div>
@@ -1266,7 +1273,7 @@ export default function Home() {
                             hasilRasionalisasi.levelKeketatan as any,
                           )}
                         >
-                          {LEVEL_KEKETATAN_INFO[hasilRasionalisasi.levelKeketatan as any].label}
+                          {getLevelLabel(hasilRasionalisasi.levelKeketatan)}
                         </span>
                         <span className="text-[11px] text-gray-400">
                           {hasilRasionalisasi.referensiRanking}
