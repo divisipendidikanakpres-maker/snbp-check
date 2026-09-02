@@ -69,13 +69,15 @@ export default function AkunPage() {
   const { query, setQuery, searching } = useSearch(async (searchQuery) => {
     setLoading(true);
     try {
-      const res = await list(searchQuery, page, limit);
+      const res = await list(searchQuery || undefined, 1, limit);
       setUsers(res.data);
       setTotal(res.total);
+      handlePageChange(1);
     } finally {
       setLoading(false);
     }
   });
+
 
   useEffect(() => {
     Promise.all([
@@ -143,93 +145,138 @@ export default function AkunPage() {
     }
   };
 
-  if (loading) return <div className="p-4">Loading...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center py-20 text-[#03989E]">
+      <div className="text-center">
+        <div className="w-10 h-10 border-4 border-[#03989E] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-sm text-gray-500">Memuat data...</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-4 md:gap-0 md:flex-row md:justify-between md:items-center">
-        <h1 className="text-xl sm:text-2xl font-bold">Manajemen Akun</h1>
+    <div className="space-y-5">
+      {/* Page Title */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: '#02747A' }}>Manajemen Akun</h1>
+          <p className="text-xs text-gray-400 mt-0.5">Kelola data pengguna SNBP Check</p>
+        </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
-          <Input
-            placeholder="Cari akun..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full sm:w-64"
-          />
-          {searching && <span className="text-xs text-gray-500">Searching...</span>}
-          <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
+          <div className="relative">
+            <Input
+              placeholder="Cari akun..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full sm:w-64 pl-4 rounded-xl border-[#d2e5e5] focus:border-[#03989E] bg-[#F8FAFA]"
+            />
+          </div>
+          {searching && <span className="text-xs text-gray-400">Mencari...</span>}
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            className="w-full sm:w-auto rounded-xl border-[#03989E] text-[#03989E] hover:bg-[#03989E] hover:text-white transition"
+          >
             Export Excel
           </Button>
         </div>
       </div>
-      <div className="border rounded-lg overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nama</TableHead>
-              <TableHead>Telepon</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>{user.fullName}</TableCell>
-                <TableCell>{user.phone}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  {currentUserId === user.id ? (
-                    <span className="text-sm text-foreground/70">{user.role}</span>
-                  ) : (
-                    <Select
-                      value={user.role}
-                      onValueChange={(val) =>
-                        handleRoleChange(user.id, val as "USER" | "ADMIN")
-                      }
-                    >
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="USER">USER</SelectItem>
-                        <SelectItem value="ADMIN">ADMIN</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                </TableCell>
-                <TableCell className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openEdit(user)}
-                  >
-                    Edit
-                  </Button>
-                  {currentUserId !== user.id && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setDeleting(user.id)}
-                    >
-                      Hapus
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
 
-      <Pagination
-        page={page}
-        limit={limit}
-        total={total}
-        onPageChange={handlePageChange}
-        onLimitChange={handleLimitChange}
-      />
+      {/* Table Card Container */}
+      <div className="bg-white rounded-2xl shadow-sm border border-[#e0eded] overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-[#f2f8f8] border-b border-[#e0eded]">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase">Nama Pengguna</TableHead>
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase">Telepon</TableHead>
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase">Email</TableHead>
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase">Role</TableHead>
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => {
+                const userInitial = user.fullName ? user.fullName[0].toUpperCase() : "U";
+                return (
+                  <TableRow key={user.id} className="hover:bg-[#f2f8f8]/60 transition-colors border-b border-[#f0f6f6]">
+                    <TableCell className="py-3.5 px-5 font-semibold text-gray-800">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-[#03989E]/10 border border-[#03989E]/20 text-[#02747A] font-bold text-xs flex items-center justify-center shrink-0">
+                          {userInitial}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-800 text-xs sm:text-sm leading-tight">{user.fullName}</p>
+                          <p className="text-[11px] text-gray-400 font-normal">ID: {user.id.slice(0, 8)}...</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-5 text-xs text-gray-600 font-medium">
+                      {user.phone || "-"}
+                    </TableCell>
+                    <TableCell className="py-3.5 px-5 text-xs text-gray-600 font-medium">
+                      {user.email}
+                    </TableCell>
+                    <TableCell className="py-3.5 px-5">
+                      {currentUserId === user.id ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold bg-[#03989E]/10 text-[#02747A] border border-[#03989E]/30">
+                          {user.role} (Anda)
+                        </span>
+                      ) : (
+                        <Select
+                          value={user.role}
+                          onValueChange={(val) =>
+                            handleRoleChange(user.id, val as "USER" | "ADMIN")
+                          }
+                        >
+                          <SelectTrigger className="w-28 h-8 text-xs font-semibold rounded-xl border-[#d2e5e5] bg-[#F8FAFA] focus:border-[#03989E]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="USER" className="text-xs font-medium">USER</SelectItem>
+                            <SelectItem value="ADMIN" className="text-xs font-bold text-[#02747A]">ADMIN</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-3.5 px-5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEdit(user)}
+                          className="h-8 px-3 rounded-xl border-[#03989E]/30 text-[#02747A] hover:bg-[#03989E] hover:text-white transition-all text-xs font-semibold"
+                        >
+                          Edit
+                        </Button>
+                        {currentUserId !== user.id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleting(user.id)}
+                            className="h-8 px-3 rounded-xl bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-all text-xs font-semibold"
+                          >
+                            Hapus
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Integrated Pagination inside Card */}
+        <Pagination
+          page={page}
+          limit={limit}
+          total={total}
+          onPageChange={handlePageChange}
+          onLimitChange={handleLimitChange}
+        />
+      </div>
 
       <AlertDialog open={!!deleting}>
         <AlertDialogContent>

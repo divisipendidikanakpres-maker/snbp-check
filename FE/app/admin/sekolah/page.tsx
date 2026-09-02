@@ -49,13 +49,15 @@ export default function SekolahPage() {
   const { query, setQuery, searching } = useSearch(async (searchQuery) => {
     setLoading(true);
     try {
-      const res = await list(searchQuery, page, limit);
+      const res = await list(searchQuery || undefined, 1, limit);
       setData(res.data);
       setTotal(res.total);
+      handlePageChange(1);
     } finally {
       setLoading(false);
     }
   });
+
 
   useEffect(() => {
     setLoading(true);
@@ -120,67 +122,108 @@ export default function SekolahPage() {
   if (loading) return <div className="p-4">Loading...</div>;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-4 md:gap-0 md:flex-row md:justify-between md:items-center">
-        <h1 className="text-xl sm:text-2xl font-bold">Manajemen Sekolah</h1>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+    <div className="space-y-5">
+      {/* Title & Actions */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: '#02747A' }}>Manajemen Sekolah</h1>
+          <p className="text-xs text-gray-400 mt-0.5">Kelola data SMA/SMK/MA terdaftar</p>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <Input
             placeholder="Cari sekolah..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full sm:w-64"
+            className="w-full sm:w-64 text-xs rounded-xl border-[#d2e5e5] focus:border-[#03989E] bg-[#F8FAFA]"
           />
-          {searching && <span className="text-xs text-gray-500">Searching...</span>}
-          <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
+          {searching && <span className="text-xs text-gray-400">Mencari...</span>}
+          
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            className="rounded-xl border-[#03989E] text-[#03989E] hover:bg-[#03989E] hover:text-white transition text-xs"
+          >
             Export Excel
           </Button>
-          <Button onClick={openNewDialog} className="w-full sm:w-auto">+ Tambah</Button>
+
+          <Button
+            onClick={openNewDialog}
+            className="rounded-xl bg-[#03989E] text-white hover:bg-[#02747A] transition text-xs font-bold shadow-xs"
+          >
+            + Tambah
+          </Button>
         </div>
       </div>
 
-      <div className="border rounded-lg overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nama Sekolah</TableHead>
-              <TableHead>Akreditasi</TableHead>
-              <TableHead>Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((sekolah) => (
-              <TableRow key={sekolah.id}>
-                <TableCell>{sekolah.namaSekolah}</TableCell>
-                <TableCell>{sekolah.akreditasi}</TableCell>
-                <TableCell className="space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(sekolah)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => setDeleting(sekolah.id)}
-                  >
-                    Hapus
-                  </Button>
-                </TableCell>
+      {/* Table Card Container */}
+      <div className="bg-white rounded-2xl shadow-sm border border-[#e0eded] overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-[#f2f8f8] border-b border-[#e0eded]">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase">Nama Sekolah</TableHead>
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase">Akreditasi</TableHead>
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase text-right">Aksi</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {data.map((sekolah) => {
+                const isAkreditasiA = sekolah.akreditasi === "A";
+                const isAkreditasiB = sekolah.akreditasi === "B";
+                return (
+                  <TableRow key={sekolah.id} className="hover:bg-[#f2f8f8]/60 transition-colors border-b border-[#f0f6f6]">
+                    <TableCell className="py-3.5 px-5">
+                      <p className="font-semibold text-gray-800 text-xs sm:text-sm leading-tight">{sekolah.namaSekolah}</p>
+                      <p className="text-[11px] text-gray-400 font-normal">NPSN Terdaftar</p>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-5">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold border ${
+                        isAkreditasiA
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : isAkreditasiB
+                          ? "bg-blue-50 text-blue-700 border-blue-200"
+                          : "bg-amber-50 text-amber-700 border-amber-200"
+                      }`}>
+                        Akreditasi {sekolah.akreditasi}
+                      </span>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(sekolah)}
+                          className="h-8 px-3 rounded-xl border-gray-300 text-gray-700 hover:bg-gray-100 transition-all text-xs font-medium"
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleting(sekolah.id)}
+                          className="h-8 px-3 rounded-xl bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-all text-xs font-semibold"
+                        >
+                          Hapus
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
 
-      <Pagination
-        page={page}
-        limit={limit}
-        total={total}
-        onPageChange={handlePageChange}
-        onLimitChange={handleLimitChange}
-      />
+        {/* Integrated Pagination inside Card */}
+        <Pagination
+          page={page}
+          limit={limit}
+          total={total}
+          onPageChange={handlePageChange}
+          onLimitChange={handleLimitChange}
+        />
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>

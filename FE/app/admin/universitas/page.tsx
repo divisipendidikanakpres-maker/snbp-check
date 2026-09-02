@@ -56,13 +56,15 @@ export default function UniversitasPage() {
   const { query, setQuery, searching } = useSearch(async (searchQuery) => {
     setLoading(true);
     try {
-      const res = await list(sort, searchQuery, page, limit);
+      const res = await list(sort, searchQuery || undefined, 1, limit);
       setData(res.data);
       setTotal(res.total);
+      handlePageChange(1);
     } finally {
       setLoading(false);
     }
   });
+
 
   useEffect(() => {
     setLoading(true);
@@ -143,101 +145,133 @@ export default function UniversitasPage() {
   if (loading) return <div className="p-4">Loading...</div>;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-4 md:gap-0 md:flex-row md:justify-between md:items-center">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-          <h1 className="text-xl sm:text-2xl font-bold">Manajemen Universitas</h1>
+    <div className="space-y-5">
+      {/* Title & Actions */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: '#02747A' }}>Manajemen Universitas</h1>
+          <p className="text-xs text-gray-400 mt-0.5">Kelola data PTN dan Program Studi SNBP</p>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as any)}
-            className="text-sm rounded-md border px-2 py-1 w-full sm:w-auto"
+            className="text-xs rounded-xl border border-[#d2e5e5] bg-[#F8FAFA] px-3 py-2 text-gray-700 font-semibold focus:border-[#03989E] outline-none cursor-pointer"
           >
             <option value="ranking_tertinggi">Ranking tertinggi</option>
             <option value="ranking_terendah">Ranking terendah</option>
           </select>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+
           <Input
             placeholder="Cari universitas..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full sm:w-64"
+            className="w-full sm:w-56 text-xs rounded-xl border-[#d2e5e5] focus:border-[#03989E] bg-[#F8FAFA]"
           />
-          {searching && <span className="text-xs text-gray-500">Searching...</span>}
-          <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
+          {searching && <span className="text-xs text-gray-400">Mencari...</span>}
+          
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            className="rounded-xl border-[#03989E] text-[#03989E] hover:bg-[#03989E] hover:text-white transition text-xs"
+          >
             Export Excel
           </Button>
-          <Button onClick={openNewDialog} className="w-full sm:w-auto">+ Tambah</Button>
+
+          <Button
+            onClick={openNewDialog}
+            className="rounded-xl bg-[#03989E] text-white hover:bg-[#02747A] transition text-xs font-bold shadow-xs"
+          >
+            + Tambah
+          </Button>
         </div>
       </div>
 
-      <div className="border rounded-lg overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="hidden md:table-cell">Ranking</TableHead>
-              <TableHead>Nama Universitas</TableHead>
-              <TableHead className="hidden sm:table-cell">Singkatan</TableHead>
-              <TableHead className="hidden lg:table-cell">Provinsi</TableHead>
-              <TableHead className="hidden md:table-cell">Jumlah Prodi</TableHead>
-              <TableHead className="hidden lg:table-cell">Nilai Rata-rata</TableHead>
-              <TableHead>Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((univ) => (
-              <TableRow key={univ.id}>
-                <TableCell className="hidden md:table-cell text-xs">{univ.ranking ?? "-"}</TableCell>
-                <TableCell className="text-sm">
-                  <div className="font-medium">{univ.namaUniversitas}</div>
-                  <div className="text-xs text-gray-500 sm:hidden">{univ.singkatan}</div>
-                </TableCell>
-                <TableCell className="hidden sm:table-cell text-xs">{univ.singkatan}</TableCell>
-                <TableCell className="hidden lg:table-cell text-xs">{univ.provinsi}</TableCell>
-                <TableCell className="hidden md:table-cell text-xs">{univ.jumlahProdi}</TableCell>
-                <TableCell className="hidden lg:table-cell text-xs">
-                  {univ.nilaiRataRata !== null
-                    ? univ.nilaiRataRata.toFixed(1)
-                    : "-"}
-                </TableCell>
-                <TableCell className="space-x-1">
-                  <Button
-                    variant="secondary"
-                    size="xs"
-                    onClick={() => goToProdi(univ)}
-                    className="hidden sm:inline-flex"
-                  >
-                    Prodi
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="xs"
-                    onClick={() => handleEdit(univ)}
-                    className="hidden sm:inline-flex"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="xs"
-                    onClick={() => setDeleting(univ.id)}
-                  >
-                    Hapus
-                  </Button>
-                </TableCell>
+      {/* Table Card Container */}
+      <div className="bg-white rounded-2xl shadow-sm border border-[#e0eded] overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-[#f2f8f8] border-b border-[#e0eded]">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase hidden md:table-cell">Ranking</TableHead>
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase">Nama Universitas</TableHead>
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase hidden sm:table-cell">Singkatan</TableHead>
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase hidden lg:table-cell">Provinsi</TableHead>
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase hidden md:table-cell">Jumlah Prodi</TableHead>
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase hidden lg:table-cell">Rata-rata Nilai</TableHead>
+                <TableHead className="py-3.5 px-5 text-xs font-bold text-[#02747A] tracking-wider uppercase text-right">Aksi</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {data.map((univ) => (
+                <TableRow key={univ.id} className="hover:bg-[#f2f8f8]/60 transition-colors border-b border-[#f0f6f6]">
+                  <TableCell className="py-3.5 px-5 hidden md:table-cell">
+                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#03989E]/10 text-[#02747A] font-bold text-xs">
+                      #{univ.ranking ?? "-"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-3.5 px-5">
+                    <div className="font-semibold text-gray-800 text-xs sm:text-sm">{univ.namaUniversitas}</div>
+                    <div className="text-[11px] text-gray-400 sm:hidden">{univ.singkatan} • {univ.provinsi}</div>
+                  </TableCell>
+                  <TableCell className="py-3.5 px-5 hidden sm:table-cell text-xs font-bold text-[#02747A]">
+                    <span className="px-2.5 py-1 rounded-lg bg-gray-100 border border-gray-200">
+                      {univ.singkatan}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-3.5 px-5 hidden lg:table-cell text-xs text-gray-600 font-medium">{univ.provinsi}</TableCell>
+                  <TableCell className="py-3.5 px-5 hidden md:table-cell text-xs text-gray-700 font-semibold">{univ.jumlahProdi} Prodi</TableCell>
+                  <TableCell className="py-3.5 px-5 hidden lg:table-cell text-xs">
+                    {univ.nilaiRataRata !== null ? (
+                      <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        {univ.nilaiRataRata.toFixed(1)}
+                      </span>
+                    ) : "-"}
+                  </TableCell>
+                  <TableCell className="py-3.5 px-5 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToProdi(univ)}
+                        className="h-8 px-2.5 rounded-xl border-[#03989E]/30 text-[#02747A] hover:bg-[#03989E] hover:text-white transition-all text-xs font-semibold"
+                      >
+                        Prodi
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(univ)}
+                        className="h-8 px-2.5 rounded-xl border-gray-300 text-gray-700 hover:bg-gray-100 transition-all text-xs font-medium"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleting(univ.id)}
+                        className="h-8 px-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-all text-xs font-semibold"
+                      >
+                        Hapus
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
 
-      <Pagination
-        page={page}
-        limit={limit}
-        total={total}
-        onPageChange={handlePageChange}
-        onLimitChange={handleLimitChange}
-      />
+        {/* Integrated Pagination inside Card */}
+        <Pagination
+          page={page}
+          limit={limit}
+          total={total}
+          onPageChange={handlePageChange}
+          onLimitChange={handleLimitChange}
+        />
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>

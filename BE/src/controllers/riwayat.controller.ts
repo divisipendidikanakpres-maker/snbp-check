@@ -94,6 +94,40 @@ export async function listRiwayat(req: Request, res: Response) {
   return res.status(200).json({ data: riwayats, total, page, limit });
 }
 
+export async function listMyRiwayat(req: Request, res: Response) {
+  const search = String(req.query.search ?? '').trim();
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const userId = req.user!.userId;
+
+  const where = {
+    userId,
+    ...(search
+      ? {
+          OR: [
+            { sekolahNama: { contains: search, mode: 'insensitive' as const } },
+            { universitasNama: { contains: search, mode: 'insensitive' as const } },
+            { prodiNama: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {}),
+  };
+
+  const skip = (page - 1) * limit;
+  const total = await prisma.riwayat.count({ where });
+
+  const riwayats = await prisma.riwayat.findMany({
+    where,
+    orderBy: {
+      createdAt: 'desc',
+    },
+    skip,
+    take: limit,
+  });
+
+  return res.status(200).json({ data: riwayats, total, page, limit });
+}
+
 export async function deleteRiwayat(req: Request, res: Response) {
   const id = String(req.params.id || '');
   if (!id) {
@@ -108,3 +142,4 @@ export async function deleteRiwayat(req: Request, res: Response) {
   await prisma.riwayat.delete({ where: { id } });
   return res.status(200).json({ message: 'Riwayat berhasil dihapus.' });
 }
+

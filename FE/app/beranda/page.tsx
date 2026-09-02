@@ -251,12 +251,12 @@ export default function Home() {
       const value = parseFloat(raw);
 
       if (raw === "" || isNaN(value)) {
-          nextErrors[id] = true;
-          hasError = true;
-          return;
-        }
+        nextErrors[id] = true;
+        hasError = true;
+        return;
+      }
 
-        // Accept any numeric value for rapor (no range restriction here).
+      // Accept any numeric value for rapor (no range restriction here).
 
       nextErrors[id] = false;
       total += value;
@@ -378,9 +378,8 @@ export default function Home() {
     }
 
     setHasilTKAMsg({
-      text: `Rata-rata TKA wajib: ${wajibAvg !== null ? wajibAvg.toFixed(2) : "-"} | Rata-rata TKA pendukung: ${
-        pendukungAvg !== null ? pendukungAvg.toFixed(2) : "-"
-      } | Rata-rata TKA keseluruhan: ${allAvg.toFixed(2)}`,
+      text: `Rata-rata TKA wajib: ${wajibAvg !== null ? wajibAvg.toFixed(2) : "-"} | Rata-rata TKA pendukung: ${pendukungAvg !== null ? pendukungAvg.toFixed(2) : "-"
+        } | Rata-rata TKA keseluruhan: ${allAvg.toFixed(2)}`,
     });
     setStep(4);
   }
@@ -566,14 +565,14 @@ export default function Home() {
     const universitas = universitasList.find((u) => u.id === val);
     setSelectedUniversitas(universitas ?? null);
     if (universitas) {
-        // load first page of prodi for this university
-        listProdi(universitas.id, 'nilai_tertinggi', undefined, 1, prodiLimit)
-          .then((res) => {
-            setProdiList(res.data);
-            setProdiTotal(res.total);
-            setProdiPage(1);
-          })
-          .catch(() => setProdiList([]));
+      // load first page of prodi for this university
+      listProdi(universitas.id, 'nilai_tertinggi', undefined, 1, prodiLimit)
+        .then((res) => {
+          setProdiList(res.data);
+          setProdiTotal(res.total);
+          setProdiPage(1);
+        })
+        .catch(() => setProdiList([]));
     } else {
       setProdiList([]);
     }
@@ -650,30 +649,30 @@ export default function Home() {
 
   return (
     <>
-      <NavBar title="GoPrestasi" />
+      <NavBar />
 
-      <section className="text-black pt-10 pb-16 px-4">
+      <section className="pt-8 pb-14 px-4 bg-[#F8FAFA] border-b border-[#e0eded]">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-2xl md:text-3xl font-extrabold mb-3">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-[#02747A] mb-2 leading-tight">
             Cek Rasionalisasi SNBP
           </h1>
-          <p className="text-sm md:text-base text-black max-w-3xl">
+          <p className="text-xs md:text-sm text-gray-500 max-w-3xl leading-relaxed">
             Isi nilai rata-rata rapor per semester, nilai TKA (opsional), lalu
             pilih PTN & jurusan. Sistem akan membandingkan nilaimu dengan
             estimasi nilai minimum SNBP setiap jurusan.
           </p>
 
-          <div className="mt-6 flex items-center gap-4 text-xs">
+          <div className="mt-8 flex items-center gap-2 sm:gap-4 text-xs font-semibold">
             <div className="flex items-center gap-2">
               <div
                 className={`step-circle ${step === 1 ? "active" : ""} ${doneSteps.includes(1) ? "done" : ""}`}
               >
                 1
               </div>
-              <span>Data Diri</span>
+              <span className={step === 1 ? "text-[#02747A] font-bold" : "text-gray-500"}>Data Diri</span>
             </div>
 
-            <div className="flex-1 h-px bg-indigo-200" />
+            <div className={`flex-1 h-0.5 transition-colors ${doneSteps.includes(1) ? "bg-[#02747A]" : "bg-[#d2e5e5]"}`} />
 
             <div className="flex items-center gap-2">
               <div
@@ -681,10 +680,10 @@ export default function Home() {
               >
                 2
               </div>
-              <span>Nilai Rapor</span>
+              <span className={step === 2 ? "text-[#02747A] font-bold" : "text-gray-500"}>Nilai Rapor</span>
             </div>
 
-            <div className="flex-1 h-px bg-indigo-200" />
+            <div className={`flex-1 h-0.5 transition-colors ${doneSteps.includes(2) ? "bg-[#02747A]" : "bg-[#d2e5e5]"}`} />
 
             <div className="flex items-center gap-2">
               <div
@@ -692,10 +691,10 @@ export default function Home() {
               >
                 3
               </div>
-              <span>Nilai TKA</span>
+              <span className={step === 3 ? "text-[#02747A] font-bold" : "text-gray-500"}>Nilai TKA</span>
             </div>
 
-            <div className="flex-1 h-px bg-indigo-200" />
+            <div className={`flex-1 h-0.5 transition-colors ${doneSteps.includes(3) ? "bg-[#02747A]" : "bg-[#d2e5e5]"}`} />
 
             <div className="flex items-center gap-2">
               <div
@@ -703,19 +702,19 @@ export default function Home() {
               >
                 4
               </div>
-              <span>Rasionalisasi Jurusan</span>
+              <span className={step === 4 ? "text-[#02747A] font-bold" : "text-gray-500"}>Rasionalisasi Jurusan</span>
             </div>
           </div>
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto px-4 -mt-8 pb-8 md:pb-12">
+      <div className="max-w-5xl mx-auto px-4 -mt-6 pb-8 md:pb-12">
         {step === 1 && (
-          <Card className="rounded-3xl shadow-xl border border-gray-100 p-6 md:p-8 animate-fade">
-            <h2 className="text-xl font-bold text-gray-800">Data Sekolah</h2>
-            <Alert variant={"info"}>
-              <InfoIcon />
-              <AlertDescription>
+          <Card className="rounded-2xl shadow-sm border border-[#e0eded] p-6 md:p-8 animate-fade bg-white space-y-5">
+            <h2 className="text-lg font-extrabold text-[#02747A]">Data Sekolah</h2>
+            <Alert variant={"info"} className="rounded-xl border-[#03989E]/30 bg-[#03989E]/5 text-[#02747A]">
+              <InfoIcon className="text-[#03989E]" />
+              <AlertDescription className="text-xs text-[#02747A]">
                 Pilih sekolah dan kurikulum terlebih dahulu. Akreditasi akan
                 terisi otomatis berdasarkan sekolah yang dipilih.
               </AlertDescription>
@@ -738,11 +737,10 @@ export default function Home() {
                     render={
                       <Button
                         variant="outline"
-                        className={`w-full justify-between border-2 rounded-xl px-3 py-2.5 text-sm font-normal bg-white hover:bg-white ${
-                          kurikulumErrors.sekolah
+                        className={`w-full justify-between border-2 rounded-xl px-3 py-2.5 text-sm font-normal bg-white hover:bg-white ${kurikulumErrors.sekolah
                             ? "border-red-500"
                             : "border-gray-200"
-                        }`}
+                          }`}
                       >
                         <ComboboxValue placeholder="-- Pilih Sekolah --" />
                       </Button>
@@ -765,7 +763,9 @@ export default function Home() {
                         </ComboboxItem>
                       ))}
                       {schoolLoadingMore && (
-                        <div className="px-3 py-2 text-sm text-center text-gray-500">Memuat...</div>
+                        <div className="p-2 text-center text-xs text-gray-400">
+                          Memuat sekolah...
+                        </div>
                       )}
                     </ComboboxList>
                   </ComboboxContent>
@@ -783,13 +783,20 @@ export default function Home() {
                   Akreditasi
                 </Label>
                 <Input
-                  value={selectedSchool ? selectedSchool.akreditasi : ""}
-                  readOnly
-                  className="text-sm bg-gray-50"
+                  disabled
+                  value={
+                    selectedSchool
+                      ? `Akreditasi ${selectedSchool.akreditasi}`
+                      : ""
+                  }
+                  placeholder="Terisi otomatis"
+                  className="bg-gray-50 text-xs font-semibold text-[#02747A] rounded-xl border-[#d2e5e5]"
                 />
               </div>
+            </div>
 
-              <div className="md:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
                 <Label className="block text-xs font-semibold text-gray-600 mb-1.5">
                   Kurikulum <span className="text-red-500">*</span>
                 </Label>
@@ -803,11 +810,10 @@ export default function Home() {
                     render={
                       <Button
                         variant="outline"
-                        className={`w-full justify-between border-2 rounded-xl px-3 py-2.5 text-sm font-normal bg-white hover:bg-white ${
-                          kurikulumErrors.kurikulum
+                        className={`w-full justify-between border-2 rounded-xl px-3 py-2.5 text-sm font-normal bg-white hover:bg-white ${kurikulumErrors.kurikulum
                             ? "border-red-500"
                             : "border-gray-200"
-                        }`}
+                          }`}
                       >
                         <ComboboxValue placeholder="-- Pilih Kurikulum --" />
                       </Button>
@@ -837,17 +843,17 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-col md:items-end gap-3">
+            <div className="mt-6 flex flex-col md:items-end gap-3">
               <Button
                 onClick={simpanSekolahDanNext}
-                className="text-white px-10 py-4 text-sm hover:opacity-90 transition hover:-translate-y-0.5 shadow-md cursor-pointer"
+                className="rounded-xl bg-[#03989E] hover:bg-[#02747A] text-white font-bold px-8 py-2.5 text-xs sm:text-sm shadow-xs transition-all cursor-pointer"
               >
                 Simpan
               </Button>
 
               {hasilSekolahMsg && (
                 <div
-                  className={`text-xs ${hasilSekolahMsg.error ? "text-red-500" : "text-gray-700"}`}
+                  className={`text-xs ${hasilSekolahMsg.error ? "text-red-500" : "text-[#02747A] font-medium"}`}
                 >
                   {hasilSekolahMsg.text}
                 </div>
@@ -857,23 +863,14 @@ export default function Home() {
         )}
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 -mt-8">
+      <div className="max-w-5xl mx-auto px-4 -mt-6">
         {step === 2 && (
-          <Card className="rounded-3xl shadow-xl border border-gray-100 p-6 md:p-8 animate-fade">
-            <h2 className="text-xl font-bold text-gray-800">Nilai Rapor</h2>
-            <Alert variant={"info"}>
-              <InfoIcon />
-              <AlertDescription>
-                Masukkan nilai rata-rata rapor untuk setiap semester. Nilai
-                rata-rata adalah jumlah dari semua nilai mata pelajaran di
-                semester tersebut dibagi dengan jumlah mata pelajaran. settings.
-              </AlertDescription>
-            </Alert>
-            <Separator />
+          <Card className="rounded-2xl shadow-sm border border-[#e0eded] p-6 md:p-8 animate-fade bg-white space-y-5">
+            <h2 className="text-lg font-extrabold text-[#02747A]">Nilai Rapor</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               {RAPOR_FIELDS.map(({ id, label }) => (
                 <div key={id}>
-                  <Label className="block text-xs font-semibold mb-1.5">
+                  <Label className="block text-xs font-semibold text-gray-700 mb-1.5">
                     {label} <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -886,11 +883,10 @@ export default function Home() {
                       setRapor((prev) => ({ ...prev, [id]: value }));
                       setRaporErrors((prev) => ({ ...prev, [id]: false }));
                     }}
-                    className={`text-sm focus-visible:border-indigo-400 ${
-                      raporErrors[id]
+                    className={`text-xs sm:text-sm rounded-xl border-[#d2e5e5] focus:border-[#03989E] ${raporErrors[id]
                         ? "border-red-500 focus-visible:ring-red-500"
                         : ""
-                    }`}
+                      }`}
                   />
                 </div>
               ))}
@@ -899,16 +895,15 @@ export default function Home() {
             <div className="">
               {hasilRaporMsg && (
                 <div
-                  className={`text-xs ${
-                    hasilRaporMsg.error ? "text-red-500" : "text-gray-700"
-                  }`}
+                  className={`text-xs ${hasilRaporMsg.error ? "text-red-500" : "text-gray-700"
+                    }`}
                 >
                   {hasilRaporMsg.error ? (
                     hasilRaporMsg.text
                   ) : (
                     <>
                       Rata-rata rapor keseluruhan:{" "}
-                      <span className="font-bold text-indigo-600">
+                      <span className="font-bold text-[#03989E]">
                         {avgRaporGlobal?.toFixed(2)}
                       </span>
                     </>
@@ -917,19 +912,19 @@ export default function Home() {
               )}
             </div>
 
-            <div className="mt-4 flex flex-col md:items-end md:justify-between gap-3">
+            <div className="mt-6 flex flex-col md:items-end md:justify-between gap-3">
               <div className="flex gap-3">
                 <Button
                   variant="outline"
                   type="button"
-                  className="px-10 py-4 text-sm hover:opacity-90 transition hover:-translate-y-0.5 shadow-md cursor-pointer"
+                  className="rounded-xl border-[#d2e5e5] text-gray-600 hover:border-[#03989E] hover:text-[#03989E] font-semibold px-7 py-2 text-xs sm:text-sm transition-all cursor-pointer"
                   onClick={() => setStep(1)}
                 >
                   Kembali
                 </Button>
                 <Button
                   onClick={hitungRaporDanNext}
-                  className="text-white px-10 py-4 text-sm hover:opacity-90 transition hover:-translate-y-0.5 shadow-md cursor-pointer"
+                  className="rounded-xl bg-[#03989E] hover:bg-[#02747A] text-white font-bold px-8 py-2 text-xs sm:text-sm shadow-xs transition-all cursor-pointer"
                 >
                   Simpan
                 </Button>
@@ -939,11 +934,11 @@ export default function Home() {
         )}
 
         {step === 3 && (
-          <Card className="rounded-3xl shadow-xl border mb-4 border-gray-100 p-6 md:p-8 animate-fade">
-            <h2 className="text-xl font-bold text-gray-800">Nilai TKA</h2>
-            <Alert>
-              <InfoIcon />
-              <AlertDescription>
+          <Card className="rounded-2xl shadow-sm border border-[#e0eded] p-6 md:p-8 animate-fade bg-white space-y-5 mb-4">
+            <h2 className="text-lg font-extrabold text-[#02747A]">Nilai TKA</h2>
+            <Alert variant={"info"} className="rounded-xl border-[#03989E]/30 bg-[#03989E]/5 text-[#02747A]">
+              <InfoIcon className="text-[#03989E]" />
+              <AlertDescription className="text-xs text-[#02747A]">
                 Jika kamu punya skor TKA, masukkan di sini untuk memperkuat
                 rasionalisasi. Kalau tidak punya, pilih &quot;Tidak&quot; dan
                 langkah ini akan dilewati (rasionalisasi 100% dari nilai rapor).
@@ -956,44 +951,37 @@ export default function Home() {
                 Apakah kamu punya nilai TKA?
               </div>
               <RadioGroup
-                className="flex items-center gap-4 text-xs"
+                className="flex items-center gap-4 text-xs font-semibold"
                 value={
                   punyaTKA === null ? undefined : punyaTKA ? "ya" : "tidak"
                 }
                 onValueChange={(v) => onToggleTKA(v === "ya")}
               >
-                <div className="inline-flex items-center gap-1.5">
+                <div className="inline-flex items-center gap-2">
                   <RadioGroupItem
                     value="ya"
                     id="tka-ya"
-                    className="accent-indigo-500"
+                    className="border-[#03989E] text-[#03989E]"
                   />
-                  <Label htmlFor="tka-ya">Ya</Label>
+                  <Label htmlFor="tka-ya" className="cursor-pointer">Ya</Label>
                 </div>
-                <div className="inline-flex items-center gap-1.5">
+                <div className="inline-flex items-center gap-2">
                   <RadioGroupItem
                     value="tidak"
                     id="tka-tidak"
-                    className="accent-indigo-500"
+                    className="border-[#03989E] text-[#03989E]"
                   />
-                  <Label htmlFor="tka-tidak">Tidak</Label>
+                  <Label htmlFor="tka-tidak" className="cursor-pointer">Tidak</Label>
                 </div>
               </RadioGroup>
-              <Alert variant={"info"}>
-                <InfoIcon />
-                <AlertDescription>
-                  Kalau kamu pilih <strong>&quot;Tidak&quot;</strong>, nilai TKA
-                  tidak akan dipakai dalam perhitungan peluang.
-                </AlertDescription>
-              </Alert>
             </div>
 
             {punyaTKA && (
               <div className="space-y-5 animate-fade">
                 <Separator />
-                <div className="border border-gray-200 rounded-2xl p-3 bg-gray-50">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-xs font-semibold text-gray-700">
+                <div className="border border-[#e0eded] rounded-2xl p-4 bg-[#F8FAFA]">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-xs font-bold text-[#02747A]">
                       Mata Pelajaran Wajib TKA
                     </div>
                     <div className="text-[10px] text-gray-400">
@@ -1002,8 +990,8 @@ export default function Home() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px]">
                     {TKA_WAJIB_FIELDS.map(({ id, label }) => (
-                      <div key={id} className="flex flex-col gap-1">
-                        <span className="text-gray-600">{label}</span>
+                      <div key={id} className="flex flex-col gap-1.5">
+                        <span className="text-gray-700 font-medium">{label}</span>
                         <Input
                           type="number"
                           min={0}
@@ -1017,7 +1005,7 @@ export default function Home() {
                               [id]: e.target.value,
                             }))
                           }
-                          className="text-sm focus-visible:border-indigo-400"
+                          className="text-xs sm:text-sm rounded-xl border-[#d2e5e5] bg-white focus:border-[#03989E]"
                         />
                       </div>
                     ))}
@@ -1026,26 +1014,26 @@ export default function Home() {
               </div>
             )}
 
-            <div className="mt-4 flex flex-col md:items-end md:justify-between gap-3">
+            <div className="mt-6 flex flex-col md:items-end md:justify-between gap-3">
               <div className="flex gap-3">
                 <Button
                   variant="outline"
                   type="button"
-                  className="px-10 py-4 text-sm hover:opacity-90 transition hover:-translate-y-0.5 shadow-md cursor-pointer"
+                  className="rounded-xl border-[#d2e5e5] text-gray-600 hover:border-[#03989E] hover:text-[#03989E] font-semibold px-7 py-2 text-xs sm:text-sm transition-all cursor-pointer"
                   onClick={() => setStep(2)}
                 >
                   Kembali
                 </Button>
                 <Button
                   onClick={hitungTKAAndNext}
-                  className="text-white px-10 py-4 text-sm hover:opacity-90 transition hover:-translate-y-0.5 shadow-md cursor-pointer"
+                  className="rounded-xl bg-[#03989E] hover:bg-[#02747A] text-white font-bold px-8 py-2 text-xs sm:text-sm shadow-xs transition-all cursor-pointer"
                 >
                   Simpan
                 </Button>
               </div>
               {hasilTKAMsg && (
                 <div
-                  className={`text-xs ${hasilTKAMsg.error ? "text-red-500" : "text-gray-700"} animate-fade`}
+                  className={`text-xs ${hasilTKAMsg.error ? "text-red-500" : "text-[#02747A] font-medium"} animate-fade`}
                 >
                   {hasilTKAMsg.text}
                 </div>
@@ -1055,13 +1043,13 @@ export default function Home() {
         )}
 
         {step === 4 && (
-          <Card className="rounded-3xl shadow-xl border border-gray-100 p-6 md:p-8 animate-fade mb-4">
-            <h2 className="text-base font-bold text-gray-800">
+          <Card className="rounded-2xl shadow-sm border border-[#e0eded] p-6 md:p-8 animate-fade bg-white space-y-5 mb-4">
+            <h2 className="text-lg font-extrabold text-[#02747A]">
               Rasionalisasi Jurusan SNBP
             </h2>
-            <Alert variant={"info"}>
-              <InfoIcon />
-              <AlertDescription>
+            <Alert variant={"info"} className="rounded-xl border-[#03989E]/30 bg-[#03989E]/5 text-[#02747A]">
+              <InfoIcon className="text-[#03989E]" />
+              <AlertDescription className="text-xs text-[#02747A]">
                 Pilih PTN dan jurusan. Sistem akan menggunakan nilai rapor
                 rata-rata dan TKA (jika ada) untuk membandingkan dengan estimasi
                 nilai minimum jurusan dari database SNBP.
@@ -1073,7 +1061,7 @@ export default function Home() {
               <div>
                 <div className="space-y-3">
                   <div>
-                    <Label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                    <Label className="block text-xs font-semibold text-gray-700 mb-1.5">
                       Universitas
                     </Label>
                     <Combobox
@@ -1117,7 +1105,7 @@ export default function Home() {
                     </Combobox>
                   </div>
                   <div>
-                    <Label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                    <Label className="block text-xs font-semibold text-gray-700 mb-1.5">
                       Program Studi
                     </Label>
                     <Combobox
@@ -1163,20 +1151,20 @@ export default function Home() {
                   </div>
                 </div>
                 {currentJurusan && (
-                  <div className="mt-4 bg-zinc-50 border border-zinc-100 rounded-2xl p-3 text-xs text-gray-700">
+                  <div className="mt-4 bg-[#F8FAFA] border border-[#e0eded] rounded-2xl p-3.5 text-xs text-gray-700">
                     <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">
+                      <div className="w-8 h-8 rounded-full bg-[#03989E]/10 text-[#02747A] flex items-center justify-center text-xs font-bold shrink-0">
                         Prodi
                       </div>
                       <div className="flex-1">
-                        <div className="text-xs font-semibold text-gray-800">
+                        <div className="text-xs font-bold text-gray-800">
                           {currentJurusan.programStudi}
                         </div>
                         <div className="text-[11px] text-gray-500 mt-0.5">
-                          <span className="block">
+                          <span className="block text-[#03989E] font-semibold">
                             {currentJurusan.universitas.namaUniversitas}
                           </span>
-                          <span>Estimasi: {currentJurusan.nilai.toFixed(1)}</span>
+                          <span>Estimasi Nilai: <strong>{currentJurusan.nilai.toFixed(1)}</strong></span>
                         </div>
                       </div>
                       <span
@@ -1189,15 +1177,15 @@ export default function Home() {
                 )}
               </div>
 
-              <div className="border border-gray-100 rounded-2xl p-3 bg-gray-50 text-xs">
-                <div className="font-semibold text-gray-700 mb-2">
+              <div className="border border-[#e0eded] rounded-2xl p-4 bg-[#F8FAFA] text-xs space-y-2">
+                <div className="font-bold text-[#02747A] mb-2">
                   Ringkasan Nilai Kamu
                 </div>
                 <div>
                   {avgRaporGlobal !== null && (
                     <div>
                       Rata-rata rapor keseluruhan:{" "}
-                      <span className="font-bold text-indigo-600">
+                      <span className="font-bold text-[#03989E]">
                         {avgRaporGlobal.toFixed(2)}
                       </span>
                     </div>
@@ -1206,11 +1194,11 @@ export default function Home() {
                     <>
                       <div>
                         Rata-rata TKA keseluruhan:{" "}
-                        <span className="font-bold text-indigo-600">
+                        <span className="font-bold text-[#03989E]">
                           {avgTKAAll.toFixed(2)}
                         </span>
                       </div>
-                      <div className="text-[10px] text-gray-500 mt-1">
+                      <div className="text-[10px] text-gray-400 mt-1">
                         Perhitungan akhir: ~85% rapor + 15% TKA.
                       </div>
                     </>
@@ -1218,11 +1206,11 @@ export default function Home() {
                     <>
                       <div>
                         Nilai TKA:{" "}
-                        <span className="font-semibold text-gray-500">
+                        <span className="font-semibold text-gray-400">
                           tidak digunakan
                         </span>
                       </div>
-                      <div className="text-[10px] text-gray-500 mt-1">
+                      <div className="text-[10px] text-gray-400 mt-1">
                         Perhitungan akhir memakai 100% nilai rapor.
                       </div>
                     </>
@@ -1231,19 +1219,19 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-col md:items-end md:justify-between gap-3">
+            <div className="mt-6 flex flex-col md:items-end md:justify-between gap-3">
               <div className="flex gap-3">
                 <Button
                   variant="outline"
                   type="button"
-                  className="px-10 py-4 text-sm hover:opacity-90 transition hover:-translate-y-0.5 shadow-md cursor-pointer"
+                  className="rounded-xl border-[#d2e5e5] text-gray-600 hover:border-[#03989E] hover:text-[#03989E] font-semibold px-7 py-2 text-xs sm:text-sm transition-all cursor-pointer"
                   onClick={() => setStep(3)}
                 >
                   Kembali
                 </Button>
                 <Button
                   onClick={hitungRasionalisasi}
-                  className="text-white px-10 py-4 text-sm hover:opacity-90 transition hover:-translate-y-0.5 shadow-md cursor-pointer"
+                  className="rounded-xl bg-[#03989E] hover:bg-[#02747A] text-white font-bold px-8 py-2 text-xs sm:text-sm shadow-xs transition-all cursor-pointer"
                 >
                   Lihat Hasil
                 </Button>

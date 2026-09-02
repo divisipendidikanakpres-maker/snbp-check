@@ -53,9 +53,19 @@ export function useHistory() {
     return get<PaginatedResponse<HistoryItem>>(`/riwayat${q}`);
   }
 
+  async function listMine(search?: string, page?: number, limit?: number) {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (page) params.set('page', page.toString());
+    if (limit) params.set('limit', limit.toString());
+    const q = params.toString() ? `?${params.toString()}` : "";
+    return get<PaginatedResponse<HistoryItem>>(`/riwayat/me${q}`);
+  }
+
   async function remove(id: string) {
     return del<{ message: string }>(`/riwayat/${id}`);
   }
 
-  return { create, list, remove };
+  return { create, list, listMine, remove };
 }
+

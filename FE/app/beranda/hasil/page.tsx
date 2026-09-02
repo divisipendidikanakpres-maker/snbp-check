@@ -80,6 +80,8 @@ async function fetchSuggestions(prodiId: string, nilaiAkhir: number) {
   }>;
 }
 
+import { NavBar } from "@/components/nav-bar";
+
 export default async function HasilPage({
   searchParams,
 }: {
@@ -98,12 +100,10 @@ export default async function HasilPage({
 
   if (!prodiId || !avgRapor || !nilaiAkhir || !selisih || !bobotRapor || !bobotTKA) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-10 text-sm">
-        Data hasil tidak lengkap. Silakan ulangi rasionalisasi dari awal.
-        <div className="mt-4">
-          <Button asChild>
-            <Link href="/">Kembali ke halaman utama</Link>
-          </Button>
+      <div className="min-h-screen bg-[#F8FAFA] flex flex-col">
+        <NavBar />
+        <div className="p-8 text-center text-sm text-gray-500">
+          Data hasil tidak lengkap. Silakan <Link href="/beranda" className="text-[#03989E] font-bold underline">kembali ke kalkulator</Link>.
         </div>
       </div>
     );
@@ -114,19 +114,18 @@ export default async function HasilPage({
     prodi = await fetchProdi(prodiId);
   } catch {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-10 text-sm">
-        Tidak dapat menampilkan hasil. Silakan ulangi rasionalisasi dari awal.
-        <div className="mt-4">
-          <Button asChild>
-            <Link href="/">Kembali ke halaman utama</Link>
-          </Button>
+      <div className="min-h-screen bg-[#F8FAFA] flex flex-col">
+        <NavBar />
+        <div className="p-8 text-center text-sm text-gray-500">
+          Tidak dapat menampilkan hasil prodi. Silakan <Link href="/beranda" className="text-[#03989E] font-bold underline">kembali ke kalkulator</Link>.
         </div>
       </div>
     );
   }
 
-  const estimasi = prodi.nilai;
   const selisihNum = parseFloat(selisih);
+  const estimasi = prodi.nilai;
+
   const stat = getStatusInfo(selisihNum);
   const avgRaporNum = parseFloat(avgRapor);
   const avgTKANum = avgTKA ? parseFloat(avgTKA) : null;
@@ -137,32 +136,25 @@ export default async function HasilPage({
   const alternatives =
     selisihNum < 0 ? await fetchSuggestions(prodiId, nilaiAkhirNum) : [];
 
-  return (
-    <>
-      <nav className="bg-white text-black shadow-md">
-        <div className="px-5 py-4 flex">
-          <div className="flex gap-3">
-            <div>
-              <div className="font-bold text-lg leading-tight">GoPrestasi</div>
-            </div>
-          </div>
-        </div>
-      </nav>
 
-      <section className=" text-black pt-10 pb-16 px-4">
+  return (
+    <div className="min-h-screen bg-[#F8FAFA] flex flex-col pb-12">
+      <NavBar />
+
+      <section className="pt-8 pb-14 px-4 bg-[#F8FAFA] border-b border-[#e0eded]">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-2xl md:tet-3xl font-extrabold mb-3">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-[#02747A] mb-2 leading-tight">
             Hasil Rasionalisasi SNBP
           </h1>
-          <p className="text-sm md:text-base text-black max-w-3xl">
+          <p className="text-xs md:text-sm text-gray-500 max-w-3xl leading-relaxed">
             Ringkasan peluang dan rekomendasi jurusan berdasarkan nilai rapor
             dan TKA yang kamu masukkan.
           </p>
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto px-4 -mt-8 space-y-6">
-        <Card className="rounded-3xl shadow-xl border border-gray-100 p-6 md:p-8 animate-fade mb-5">
+      <div className="max-w-5xl mx-auto px-4 -mt-6 w-full space-y-6">
+        <Card className="rounded-2xl shadow-sm border border-[#e0eded] p-6 md:p-8 animate-fade mb-5 bg-white">
           {/* Card hasil utama */}
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
@@ -429,13 +421,14 @@ export default async function HasilPage({
           <div className="mt-6 flex justify-end gap-3">
             <Button
               asChild
-              className="px-10 py-4 mb-5 text-sm hover:opacity-90 transition hover:-translate-y-0.5 shadow-md cursor-pointer"
+              className="rounded-xl bg-[#03989E] hover:bg-[#02747A] text-white font-bold px-8 py-2.5 text-xs sm:text-sm shadow-xs transition-all cursor-pointer"
             >
-              <Link href="/beranda">Selesai</Link>
+              <Link href="/beranda">Kembali ke Kalkulator</Link>
             </Button>
           </div>
         </Card>
       </div>
-    </>
+    </div>
   );
 }
+

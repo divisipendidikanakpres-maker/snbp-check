@@ -23,3 +23,4 @@ export default function BerandaLayout({
 
   return <>{children}</>;
 }
+
