@@ -4,6 +4,10 @@ export type SekolahItem = {
   namaSekolah: string;
   akreditasi: "A" | "B" | "C" | "-";
   kecamatan?: string;
+  provinsi?: string;
+  kota?: string;
+  bentuk?: string;
+  status?: string;
 };
 
 export const SEKOLAH_DATA: SekolahItem[] = [

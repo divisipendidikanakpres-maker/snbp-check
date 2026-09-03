@@ -158,12 +158,23 @@ export default function Home() {
   }, [selectedUniversitas]);
 
   const schoolItems = useMemo(() => {
-    return sekolahList.map((s) => ({
-      value: s.id,
-      label: `${s.namaSekolah}`,
-      namaSekolah: s.namaSekolah,
-      akreditasi: s.akreditasi,
-    }));
+    return sekolahList.map((s: any) => {
+      const lokasiParts: string[] = [];
+      if (s.kota) lokasiParts.push(s.kota);
+      if (s.provinsi) lokasiParts.push(s.provinsi);
+      const lokasi = lokasiParts.join(', ');
+      return {
+        value: s.id,
+        label: s.namaSekolah,
+        subLabel: lokasi,
+        namaSekolah: s.namaSekolah,
+        akreditasi: (s.akreditasi ?? '-') as 'A' | 'B' | 'C' | '-',
+        provinsi: s.provinsi ?? '',
+        kota: s.kota ?? '',
+        kecamatan: s.kecamatan ?? '',
+        npsn: s.npsn ?? s.id,
+      };
+    });
   }, [sekolahList]);
 
   const selectedSchoolItem = schoolItems.find(
@@ -171,9 +182,13 @@ export default function Home() {
   ) ?? {
     value: "",
     label: "-- Pilih Sekolah --",
+    subLabel: "",
     namaSekolah: "",
     akreditasi: "-" as const,
+    provinsi: "",
+    kota: "",
     kecamatan: "",
+    npsn: "",
   };
 
   const selectedKurikulumItem = KURIKULUM_DATA.find(
@@ -187,9 +202,12 @@ export default function Home() {
     if (!item?.value) return;
     setSchoolNpsn(item.value);
     setSelectedSchool({
-      npsn: item.value,
+      npsn: item.npsn || item.value,
       namaSekolah: item.namaSekolah,
       akreditasi: item.akreditasi,
+      provinsi: item.provinsi,
+      kota: item.kota,
+      kecamatan: item.kecamatan,
     });
     setKurikulumErrors((prev) => ({ ...prev, sekolah: false }));
   }
@@ -759,7 +777,12 @@ export default function Home() {
                     <ComboboxList onScroll={handleSchoolScroll}>
                       {schoolItems.map((item) => (
                         <ComboboxItem key={item.value} value={item}>
-                          {item.label}
+                          <div className="flex flex-col">
+                            <span className="font-medium text-xs leading-tight">{item.label}</span>
+                            {item.subLabel && (
+                              <span className="text-[10px] text-gray-400 leading-tight">{item.subLabel}</span>
+                            )}
+                          </div>
                         </ComboboxItem>
                       ))}
                       {schoolLoadingMore && (

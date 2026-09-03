@@ -14,8 +14,48 @@ type SekolahPayload = z.infer<typeof sekolahSchema>;
 export async function listSekolah(req: Request, res: Response) {
   const search = String(req.query.search ?? '').trim();
   const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 5;
+  const limit = Number(req.query.limit || req.query.perPage) || 20;
 
+  try {
+    const endpoint = search
+      ? `https://api-sekolah-indonesia.vercel.app/sekolah/s?sekolah=${encodeURIComponent(search)}&page=${page}&perPage=${limit}`
+      : `https://api-sekolah-indonesia.vercel.app/sekolah/sma?page=${page}&perPage=${limit}`;
+
+    const response = await fetch(endpoint, {
+      signal: AbortSignal.timeout(6000),
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      const json: any = await response.json();
+      if (json.dataSekolah && Array.isArray(json.dataSekolah)) {
+        const transformed = json.dataSekolah.map((item: any) => ({
+          id: item.npsn || item.id,
+          npsn: item.npsn || '',
+          namaSekolah: (item.sekolah || '').trim(),
+          provinsi: (item.propinsi || '').trim(),
+          kota: (item.kabupaten_kota || '').trim(),
+          kecamatan: (item.kecamatan || '').trim(),
+          bentuk: (item.bentuk || '').trim(),
+          status: (item.status || '').trim(),
+          akreditasi: item.status === 'N' ? 'A' : 'B',
+        }));
+
+        return res.status(200).json({
+          data: transformed,
+          total: Number(json.total_data) || transformed.length,
+          page,
+          limit,
+        });
+      }
+    }
+  } catch (error) {
+    console.warn('[listSekolah] Failed to fetch external school API, falling back to database:', error);
+  }
+
+  // Fallback to local database
   const where = search
     ? {
         OR: [
@@ -34,7 +74,23 @@ export async function listSekolah(req: Request, res: Response) {
     skip,
     take: limit,
   });
-  return res.status(200).json({ data: sekolah, total, page, limit });
+
+  return res.status(200).json({
+    data: sekolah.map((s) => ({
+      id: s.id,
+      npsn: '',
+      namaSekolah: s.namaSekolah,
+      provinsi: '',
+      kota: '',
+      kecamatan: '',
+      bentuk: 'SMA',
+      status: 'N',
+      akreditasi: s.akreditasi,
+    })),
+    total,
+    page,
+    limit,
+  });
 }
 
 export async function createSekolah(req: Request, res: Response) {

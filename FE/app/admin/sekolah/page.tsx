@@ -175,7 +175,11 @@ export default function SekolahPage() {
                   <TableRow key={sekolah.id} className="hover:bg-[#f2f8f8]/60 transition-colors border-b border-[#f0f6f6]">
                     <TableCell className="py-3.5 px-5">
                       <p className="font-semibold text-gray-800 text-xs sm:text-sm leading-tight">{sekolah.namaSekolah}</p>
-                      <p className="text-[11px] text-gray-400 font-normal">NPSN Terdaftar</p>
+                      <p className="text-[11px] text-gray-400 font-normal">
+                        {sekolah.npsn ? `NPSN: ${sekolah.npsn}` : "NPSN Terdaftar"}
+                        {sekolah.kota ? ` • ${sekolah.kota}` : ""}
+                        {sekolah.provinsi ? `, ${sekolah.provinsi}` : ""}
+                      </p>
                     </TableCell>
                     <TableCell className="py-3.5 px-5">
                       <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold border ${

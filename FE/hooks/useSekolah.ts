@@ -2,10 +2,16 @@ import { useApi } from "./useApi";
 
 export interface Sekolah {
   id: string;
+  npsn?: string;
   namaSekolah: string;
+  provinsi?: string;
+  kota?: string;
+  kecamatan?: string;
+  bentuk?: string;
+  status?: string;
   akreditasi: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface SekolahPayload {
