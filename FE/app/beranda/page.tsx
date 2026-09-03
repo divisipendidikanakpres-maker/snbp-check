@@ -877,7 +877,9 @@ export default function Home() {
                         setSchoolQuery(v);
                       }}
                     />
-                    <ComboboxEmpty>Sekolah tidak ditemukan.</ComboboxEmpty>
+                    <ComboboxEmpty>
+                      {schoolLoadingMore ? "Memuat data sekolah..." : "Sekolah tidak ditemukan."}
+                    </ComboboxEmpty>
                     <ComboboxList onScroll={handleSchoolScroll}>
                       {schoolItems.map((item) => (
                         <ComboboxItem key={item.value} value={item}>
