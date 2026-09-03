@@ -15,6 +15,7 @@ const app = express();
 const allowedOrigins = [
   process.env.CLIENT_ORIGIN,
   'https://snbp-check.vercel.app',
+  'https://snbp.goprestasi.com',
   'http://localhost:3000'
 ].filter((origin): origin is string => Boolean(origin));
 
