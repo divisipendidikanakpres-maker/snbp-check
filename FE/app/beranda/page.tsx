@@ -20,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { KURIKULUM_DATA } from "@/lib/data-kurikulum";
 import { SEKOLAH_DATA, SekolahItem } from "@/lib/data-sekolah";
+import { PROVINSI_DATA, type Provinsi } from "@/lib/data-wilayah";
 import { badgeClass, getStatusInfo, slugify } from "@/lib/utils-snbp";
 import { LEVEL_KEKETATAN_INFO } from "@/lib/level-keketatan";
 import { useSekolah } from "@/hooks/useSekolah";
@@ -111,6 +112,12 @@ export default function Home() {
     kurikulum?: boolean;
   }>({});
 
+  // --- Wilayah: Provinsi → Kota cascade ---
+  const [selectedProvinsi, setSelectedProvinsi] = useState<Provinsi | null>(null);
+  const [selectedKota, setSelectedKota] = useState<{ value: string; label: string } | null>(null);
+
+  const kotaList = useMemo(() => selectedProvinsi?.kota ?? [], [selectedProvinsi]);
+
   // --- Infinite remote loading states for selects (schools, universities, prodi) ---
   const [schoolPage, setSchoolPage] = useState(1);
   const [schoolLimit] = useState(20);
@@ -130,16 +137,8 @@ export default function Home() {
   const [prodiLoadingMore, setProdiLoadingMore] = useState(false);
   const [prodiQuery, setProdiQuery] = useState("");
 
-  // initial load first pages
+  // initial load universitas
   useEffect(() => {
-    listSekolah(undefined, 1, schoolLimit)
-      .then((res) => {
-        setSekolahList(res.data);
-        setSchoolTotal(res.total);
-        setSchoolPage(1);
-      })
-      .catch(() => setSekolahList([]));
-
     listUniversitas(undefined, undefined, 1, uniLimit)
       .then((res) => {
         setUniversitasList(res.data);
@@ -148,6 +147,22 @@ export default function Home() {
       })
       .catch(() => setUniversitasList([]));
   }, []);
+
+  // Load sekolah saat kota dipilih (cascade) atau saat schoolQuery berubah
+  useEffect(() => {
+    const baseQuery = selectedKota?.value
+      ? schoolQuery ? `${schoolQuery} ${selectedKota.value}` : selectedKota.value
+      : schoolQuery || undefined;
+    setSchoolLoadingMore(true);
+    listSekolah(baseQuery, 1, schoolLimit)
+      .then((res) => {
+        setSekolahList(res.data);
+        setSchoolTotal(res.total);
+        setSchoolPage(1);
+      })
+      .catch(() => setSekolahList([]))
+      .finally(() => setSchoolLoadingMore(false));
+  }, [selectedKota, schoolQuery]);
 
   // reset prodi list when selected university changes
   useEffect(() => {
@@ -411,21 +426,6 @@ export default function Home() {
       return { data: [], total: 0, page: pageNum, limit: schoolLimit } as any;
     }
   }
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      // search changed, reload first page
-      setSchoolLoadingMore(true);
-      fetchSchoolPage(1, schoolQuery)
-        .then((res) => {
-          setSekolahList(res.data);
-          setSchoolTotal(res.total);
-          setSchoolPage(1);
-        })
-        .finally(() => setSchoolLoadingMore(false));
-    }, 400);
-    return () => clearTimeout(t);
-  }, [schoolQuery]);
 
   async function loadMoreSchool() {
     if (schoolLoadingMore) return;
@@ -733,13 +733,100 @@ export default function Home() {
             <Alert variant={"info"} className="rounded-xl border-[#03989E]/30 bg-[#03989E]/5 text-[#02747A]">
               <InfoIcon className="text-[#03989E]" />
               <AlertDescription className="text-xs text-[#02747A]">
-                Pilih sekolah dan kurikulum terlebih dahulu. Akreditasi akan
+                Pilih provinsi dan kota terlebih dahulu, lalu pilih sekolah. Akreditasi akan
                 terisi otomatis berdasarkan sekolah yang dipilih.
               </AlertDescription>
             </Alert>
 
             <Separator />
 
+            {/* Provinsi & Kota cascade */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Provinsi <span className="text-red-500">*</span>
+                </Label>
+                <Combobox
+                  items={PROVINSI_DATA.map((p) => ({ value: p.value, label: p.label }))}
+                  value={selectedProvinsi ? { value: selectedProvinsi.value, label: selectedProvinsi.label } : { value: "", label: "-- Pilih Provinsi --" }}
+                  onValueChange={(item) => {
+                    const prov = PROVINSI_DATA.find((p) => p.value === item?.value) ?? null;
+                    setSelectedProvinsi(prov);
+                    setSelectedKota(null);
+                    setSchoolNpsn("");
+                    setSelectedSchool(null);
+                    setSekolahList([]);
+                    setSchoolQuery("");
+                  }}
+                >
+                  <ComboboxTrigger
+                    render={
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between border-2 rounded-xl px-3 py-2.5 text-sm font-normal bg-white hover:bg-white border-gray-200"
+                      >
+                        <ComboboxValue placeholder="-- Pilih Provinsi --" />
+                      </Button>
+                    }
+                  />
+                  <ComboboxContent>
+                    <ComboboxInput showTrigger={false} placeholder="Cari provinsi..." />
+                    <ComboboxEmpty>Provinsi tidak ditemukan.</ComboboxEmpty>
+                    <ComboboxList>
+                      {PROVINSI_DATA.map((p) => (
+                        <ComboboxItem key={p.value} value={{ value: p.value, label: p.label }}>
+                          {p.label}
+                        </ComboboxItem>
+                      ))}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+              </div>
+
+              <div>
+                <Label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Kota / Kabupaten <span className="text-red-500">*</span>
+                </Label>
+                <Combobox
+                  items={kotaList}
+                  value={selectedKota ?? { value: "", label: selectedProvinsi ? "-- Pilih Kota --" : "-- Pilih Provinsi dulu --" }}
+                  onValueChange={(item) => {
+                    setSelectedKota(item ?? null);
+                    setSchoolNpsn("");
+                    setSelectedSchool(null);
+                    setSekolahList([]);
+                    setSchoolQuery("");
+                  }}
+                >
+                  <ComboboxTrigger
+                    render={
+                      <Button
+                        variant="outline"
+                        className={`w-full justify-between border-2 rounded-xl px-3 py-2.5 text-sm font-normal bg-white hover:bg-white ${
+                          !selectedProvinsi ? "border-gray-100 text-gray-300" : "border-gray-200"
+                        }`}
+                        disabled={!selectedProvinsi}
+                      >
+                        <ComboboxValue placeholder={selectedProvinsi ? "-- Pilih Kota --" : "-- Pilih Provinsi dulu --"} />
+                      </Button>
+                    }
+                  />
+                  <ComboboxContent>
+                    <ComboboxInput showTrigger={false} placeholder="Cari kota..." />
+                    <ComboboxEmpty>Kota tidak ditemukan.</ComboboxEmpty>
+                    <ComboboxList>
+                      {kotaList.map((k) => (
+                        <ComboboxItem key={k.value} value={k}>
+                          {k.label}
+                        </ComboboxItem>
+                      ))}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+              </div>
+            </div>
+
+            {/* Sekolah & Akreditasi */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <Label className="block text-xs font-semibold text-gray-600 mb-1.5">
