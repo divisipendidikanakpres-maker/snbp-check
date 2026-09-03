@@ -11,56 +11,108 @@ const sekolahSchema = z.object({
 
 type SekolahPayload = z.infer<typeof sekolahSchema>;
 
+async function fetchFromSchoolApi(query: string, page: number, limit: number): Promise<{ data: any[]; total: number } | null> {
+  const url = query
+    ? `https://api-sekolah-indonesia.vercel.app/sekolah/s?sekolah=${encodeURIComponent(query)}&page=${page}&perPage=${limit}`
+    : `https://api-sekolah-indonesia.vercel.app/sekolah/sma?page=${page}&perPage=${limit}`;
+
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(6000),
+    headers: { 'Accept': 'application/json' },
+  });
+
+  if (!res.ok) return null;
+  const json: any = await res.json();
+  if (json.dataSekolah && Array.isArray(json.dataSekolah) && json.dataSekolah.length > 0) {
+    return {
+      data: json.dataSekolah,
+      total: Number(json.total_data) || json.dataSekolah.length,
+    };
+  }
+  return null;
+}
+
 export async function listSekolah(req: Request, res: Response) {
-  const search = String(req.query.search ?? '').trim();
+  const rawSearch = String(req.query.search ?? '').trim();
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit || req.query.perPage) || 20;
 
-  try {
-    const endpoint = search
-      ? `https://api-sekolah-indonesia.vercel.app/sekolah/s?sekolah=${encodeURIComponent(search)}&page=${page}&perPage=${limit}`
-      : `https://api-sekolah-indonesia.vercel.app/sekolah/sma?page=${page}&perPage=${limit}`;
+  // Clean the search query: remove prefixes like "Kota", "Kab.", "Kabupaten", "Prov."
+  let cleanSearch = rawSearch
+    .replace(/^(Kota|Kab\.|Kabupaten|Prov\.)\s*/gi, '')
+    .trim();
 
-    const response = await fetch(endpoint, {
-      signal: AbortSignal.timeout(6000),
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
+  let apiResult: { data: any[]; total: number } | null = null;
 
-    if (response.ok) {
-      const json: any = await response.json();
-      if (json.dataSekolah && Array.isArray(json.dataSekolah)) {
-        const transformed = json.dataSekolah.map((item: any) => ({
-          id: item.npsn || item.id,
-          npsn: item.npsn || '',
-          namaSekolah: (item.sekolah || '').trim(),
-          provinsi: (item.propinsi || '').trim(),
-          kota: (item.kabupaten_kota || '').trim(),
-          kecamatan: (item.kecamatan || '').trim(),
-          bentuk: (item.bentuk || '').trim(),
-          status: (item.status || '').trim(),
-          akreditasi: item.status === 'N' ? 'A' : 'B',
-        }));
+  if (cleanSearch) {
+    // 1. Try with the full cleaned query
+    try {
+      apiResult = await fetchFromSchoolApi(cleanSearch, page, limit);
+    } catch (e) {
+      // ignore
+    }
 
-        return res.status(200).json({
-          data: transformed,
-          total: Number(json.total_data) || transformed.length,
-          page,
-          limit,
-        });
+    // 2. Special case for Jakarta (e.g. "Jakarta Timur", "Jakarta Selatan" etc -> search "Jakarta")
+    if (!apiResult && /jakarta/i.test(cleanSearch)) {
+      try {
+        apiResult = await fetchFromSchoolApi('Jakarta', page, limit);
+      } catch (e) {
+        // ignore
       }
     }
-  } catch (error) {
-    console.warn('[listSekolah] Failed to fetch external school API, falling back to database:', error);
+
+    // 3. If still not found and query contains multiple words, try first word or individual parts
+    if (!apiResult && cleanSearch.includes(' ')) {
+      const parts = cleanSearch.split(/\s+/).filter(Boolean);
+      try {
+        apiResult = await fetchFromSchoolApi(parts[0], page, limit);
+      } catch (e) {
+        // ignore
+      }
+      if (!apiResult && parts.length > 1) {
+        try {
+          apiResult = await fetchFromSchoolApi(parts.slice(1).join(' '), page, limit);
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+  } else {
+    // No search -> default load SMA
+    try {
+      apiResult = await fetchFromSchoolApi('', page, limit);
+    } catch (e) {
+      // ignore
+    }
   }
 
-  // Fallback to local database
-  const where = search
+  if (apiResult && apiResult.data.length > 0) {
+    const transformed = apiResult.data.map((item: any) => ({
+      id: item.npsn || item.id,
+      npsn: item.npsn || '',
+      namaSekolah: (item.sekolah || '').trim(),
+      provinsi: (item.propinsi || '').trim(),
+      kota: (item.kabupaten_kota || '').trim(),
+      kecamatan: (item.kecamatan || '').trim(),
+      bentuk: (item.bentuk || '').trim(),
+      status: (item.status || '').trim(),
+      akreditasi: item.status === 'N' ? 'A' : 'B',
+    }));
+
+    return res.status(200).json({
+      data: transformed,
+      total: apiResult.total,
+      page,
+      limit,
+    });
+  }
+
+  // Fallback to local database if external API is unreachable or returned empty
+  const where = rawSearch
     ? {
         OR: [
-          { namaSekolah: { contains: search, mode: 'insensitive' as const } },
-          { akreditasi: { contains: search, mode: 'insensitive' as const } },
+          { namaSekolah: { contains: rawSearch, mode: 'insensitive' as const } },
+          { akreditasi: { contains: rawSearch, mode: 'insensitive' as const } },
         ],
       }
     : undefined;

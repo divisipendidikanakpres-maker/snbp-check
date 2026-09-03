@@ -150,11 +150,18 @@ export default function Home() {
 
   // Load sekolah saat kota dipilih (cascade) atau saat schoolQuery berubah
   useEffect(() => {
-    const baseQuery = selectedKota?.value
-      ? schoolQuery ? `${schoolQuery} ${selectedKota.value}` : selectedKota.value
-      : schoolQuery || undefined;
+    // Strip prefix seperti "Kota ", "Kab. " dari nama kota sebelum dikirim ke API
+    const stripPrefix = (s: string) =>
+      s.replace(/^(Kota|Kab\.|Kabupaten|Prov\.)\s*/i, '').trim();
+
+    const query = schoolQuery
+      ? schoolQuery  // user mengetik manual di search box
+      : selectedKota?.value
+        ? stripPrefix(selectedKota.value)  // gunakan nama kota yang sudah di-strip
+        : undefined;
+
     setSchoolLoadingMore(true);
-    listSekolah(baseQuery, 1, schoolLimit)
+    listSekolah(query, 1, schoolLimit)
       .then((res) => {
         setSekolahList(res.data);
         setSchoolTotal(res.total);
@@ -420,7 +427,17 @@ export default function Home() {
   // --- helper functions for infinite remote loading ---
   async function fetchSchoolPage(pageNum: number, q?: string) {
     try {
-      const res = await listSekolah(q || undefined, pageNum, schoolLimit);
+      // Strip prefix jika perlu
+      const stripPrefix = (s: string) =>
+        s.replace(/^(Kota|Kab\.|Kabupaten|Prov\.)\s*/i, '').trim();
+
+      const query = q
+        ? q  // jika ada query manual, gunakan langsung
+        : selectedKota?.value
+          ? stripPrefix(selectedKota.value)
+          : undefined;
+
+      const res = await listSekolah(query, pageNum, schoolLimit);
       return res;
     } catch (e) {
       return { data: [], total: 0, page: pageNum, limit: schoolLimit } as any;
