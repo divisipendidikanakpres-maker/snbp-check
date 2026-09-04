@@ -87,6 +87,10 @@ export default async function HasilPage({
 }: {
   searchParams: Promise<{
     prodiId?: string;
+    prodiNama?: string;
+    universitasNama?: string;
+    estimasi?: string;
+    levelKeketatan?: string;
     avgRapor?: string;
     avgTKA?: string;
     bobotRapor?: string;
@@ -95,10 +99,21 @@ export default async function HasilPage({
     selisih?: string;
   }>;
 }) {
-  const { prodiId, avgRapor, avgTKA, bobotRapor, bobotTKA, nilaiAkhir, selisih } =
-    await searchParams;
+  const {
+    prodiId,
+    prodiNama,
+    universitasNama,
+    estimasi: estimasiParam,
+    levelKeketatan: levelKeketatanParam,
+    avgRapor,
+    avgTKA,
+    bobotRapor,
+    bobotTKA,
+    nilaiAkhir,
+    selisih,
+  } = await searchParams;
 
-  if (!prodiId || !avgRapor || !nilaiAkhir || !selisih || !bobotRapor || !bobotTKA) {
+  if (!avgRapor || !nilaiAkhir || !selisih || !bobotRapor || !bobotTKA) {
     return (
       <div className="min-h-screen bg-[#F8FAFA] flex flex-col">
         <NavBar />
@@ -109,15 +124,46 @@ export default async function HasilPage({
     );
   }
 
-  let prodi;
-  try {
-    prodi = await fetchProdi(prodiId);
-  } catch {
+  let prodi: {
+    id: string;
+    programStudi: string;
+    nilai: number;
+    levelKeketatan: LevelKeketatan;
+    universitas: { namaUniversitas: string; singkatan: string; provinsi: string; ranking: number | null };
+  };
+
+  if (prodiNama && universitasNama) {
+    prodi = {
+      id: prodiId || '1',
+      programStudi: prodiNama,
+      nilai: estimasiParam ? parseFloat(estimasiParam) : 85.0,
+      levelKeketatan: (levelKeketatanParam as LevelKeketatan) || 'KETAT',
+      universitas: {
+        namaUniversitas: universitasNama,
+        singkatan: '',
+        provinsi: 'Indonesia',
+        ranking: null,
+      },
+    };
+  } else if (prodiId) {
+    try {
+      prodi = await fetchProdi(prodiId);
+    } catch {
+      return (
+        <div className="min-h-screen bg-[#F8FAFA] flex flex-col">
+          <NavBar />
+          <div className="p-8 text-center text-sm text-gray-500">
+            Tidak dapat menampilkan hasil prodi. Silakan <Link href="/beranda" className="text-[#03989E] font-bold underline">kembali ke kalkulator</Link>.
+          </div>
+        </div>
+      );
+    }
+  } else {
     return (
       <div className="min-h-screen bg-[#F8FAFA] flex flex-col">
         <NavBar />
         <div className="p-8 text-center text-sm text-gray-500">
-          Tidak dapat menampilkan hasil prodi. Silakan <Link href="/beranda" className="text-[#03989E] font-bold underline">kembali ke kalkulator</Link>.
+          Data hasil tidak lengkap. Silakan <Link href="/beranda" className="text-[#03989E] font-bold underline">kembali ke kalkulator</Link>.
         </div>
       </div>
     );
@@ -134,7 +180,7 @@ export default async function HasilPage({
   const bobotTKANum = parseFloat(bobotTKA);
 
   const alternatives =
-    selisihNum < 0 ? await fetchSuggestions(prodiId, nilaiAkhirNum) : [];
+    selisihNum < 0 && prodiId ? await fetchSuggestions(prodiId, nilaiAkhirNum) : [];
 
 
   return (

@@ -693,6 +693,10 @@ export default function Home() {
 
     const params = new URLSearchParams({
       prodiId: jurusanId,
+      prodiNama: prodi.programStudi,
+      universitasNama: universitas.namaUniversitas,
+      estimasi: estimasi.toString(),
+      levelKeketatan: prodi.levelKeketatan || 'KETAT',
       avgRapor: avgRaporGlobal.toFixed(2),
       avgTKA: avgTKAAll !== null ? avgTKAAll.toFixed(2) : "",
       bobotRapor: bobotRapor.toString(),
