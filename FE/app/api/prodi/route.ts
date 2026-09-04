@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   const ptId = (searchParams.get('universitasId') || searchParams.get('ptId') || '').trim();
   const search = (searchParams.get('search') || '').trim();
   const page = Number(searchParams.get('page')) || 1;
-  const limit = Number(searchParams.get('limit')) || 100;
+  const limit = Number(searchParams.get('limit')) || 20;
 
   try {
     if (ptId) {

@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const search = (searchParams.get('search') || '').trim();
   const page = Number(searchParams.get('page')) || 1;
-  const limit = Number(searchParams.get('limit')) || 50;
+  const limit = Number(searchParams.get('limit')) || 20;
 
   try {
     let items: any[] = [];

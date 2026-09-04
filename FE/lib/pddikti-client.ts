@@ -1,10 +1,11 @@
 /**
- * Client-side PDDikti API helper using Next.js App Router internal API routes (/api/universitas and /api/prodi).
- * Always served on same origin -> 100% PDDikti Data, ZERO CORS, ZERO BE dependency.
+ * Client-side PDDikti API helper calling internal Next.js API Routes (/api/universitas & /api/prodi).
+ * Always hits same origin relative path /api/* -> 100% PDDikti data, zero CORS, zero BE limit!
  */
 
 async function apiFetch(path: string): Promise<any | null> {
   try {
+    // Relative URL ensures request goes to Next.js Frontend Serverless API Route on same domain
     const res = await fetch(`/api${path}`, {
       headers: { 'Accept': 'application/json' },
       signal: AbortSignal.timeout(12000),
@@ -49,38 +50,55 @@ export interface PddiktiProdi {
   updatedAt: string;
 }
 
-/**
- * Fetch initial list of universities (500 merged PTN/PTS).
- */
-export async function fetchInitialUniversitas(): Promise<PddiktiPT[]> {
-  const json = await apiFetch('/universitas?limit=50');
-  return json?.data ?? [];
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
 }
 
 /**
- * Search universities by keyword.
+ * Fetch list of universities (initial load) with pagination (limit 20 per scroll).
  */
-export async function searchUniversitas(query: string): Promise<PddiktiPT[]> {
-  if (!query.trim()) return [];
-  const json = await apiFetch(`/universitas?search=${encodeURIComponent(query.trim())}&limit=50`);
-  return json?.data ?? [];
+export async function fetchInitialUniversitas(page = 1, limit = 20): Promise<PaginatedResult<PddiktiPT>> {
+  const json = await apiFetch(`/universitas?page=${page}&limit=${limit}`);
+  return {
+    data: json?.data ?? [],
+    total: json?.total ?? 0,
+  };
 }
 
 /**
- * Get prodi list for a given university ID.
+ * Search universities by keyword with pagination (limit 20 per scroll).
  */
-export async function fetchProdiByPT(ptId: string): Promise<PddiktiProdi[]> {
-  const json = await apiFetch(`/prodi?universitasId=${encodeURIComponent(ptId)}&limit=100`);
-  return json?.data ?? [];
+export async function searchUniversitas(query: string, page = 1, limit = 20): Promise<PaginatedResult<PddiktiPT>> {
+  if (!query.trim()) return { data: [], total: 0 };
+  const json = await apiFetch(`/universitas?search=${encodeURIComponent(query.trim())}&page=${page}&limit=${limit}`);
+  return {
+    data: json?.data ?? [],
+    total: json?.total ?? 0,
+  };
 }
 
 /**
- * Search prodi nationally by keyword.
+ * Get prodi list for a given university ID with pagination.
  */
-export async function searchProdiNational(query: string): Promise<PddiktiProdi[]> {
-  if (!query.trim()) return [];
-  const json = await apiFetch(`/prodi?search=${encodeURIComponent(query.trim())}&limit=50`);
-  return json?.data ?? [];
+export async function fetchProdiByPT(ptId: string, page = 1, limit = 20): Promise<PaginatedResult<PddiktiProdi>> {
+  const json = await apiFetch(`/prodi?universitasId=${encodeURIComponent(ptId)}&page=${page}&limit=${limit}`);
+  return {
+    data: json?.data ?? [],
+    total: json?.total ?? 0,
+  };
+}
+
+/**
+ * Search prodi nationally by keyword with pagination.
+ */
+export async function searchProdiNational(query: string, page = 1, limit = 20): Promise<PaginatedResult<PddiktiProdi>> {
+  if (!query.trim()) return { data: [], total: 0 };
+  const json = await apiFetch(`/prodi?search=${encodeURIComponent(query.trim())}&page=${page}&limit=${limit}`);
+  return {
+    data: json?.data ?? [],
+    total: json?.total ?? 0,
+  };
 }
 
 export function mapPTtoUniversitas(pt: PddiktiPT) {

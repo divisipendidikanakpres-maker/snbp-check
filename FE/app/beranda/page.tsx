@@ -144,32 +144,7 @@ export default function Home() {
   const [prodiLoadingMore, setProdiLoadingMore] = useState(false);
   const [prodiQuery, setProdiQuery] = useState("");
 
-  // initial load universitas — use client-side PDDikti directly
-  useEffect(() => {
-    setUniLoadingMore(true);
-    fetchInitialUniversitas()
-      .then((pts) => {
-        if (pts.length > 0) {
-          const mapped = pts.map(mapPTtoUniversitas) as Universitas[];
-          setUniversitasList(mapped);
-          setUniTotal(mapped.length);
-          setUniPage(1);
-        } else {
-          // fallback to backend
-          return listUniversitas(undefined, undefined, 1, uniLimit).then((res) => {
-            setUniversitasList(res.data);
-            setUniTotal(res.total);
-            setUniPage(1);
-          });
-        }
-      })
-      .catch(() => {
-        listUniversitas(undefined, undefined, 1, uniLimit)
-          .then((res) => { setUniversitasList(res.data); setUniTotal(res.total); })
-          .catch(() => setUniversitasList([]));
-      })
-      .finally(() => setUniLoadingMore(false));
-  }, []);
+
 
   // Load sekolah saat kota dipilih (cascade) atau saat schoolQuery berubah
   useEffect(() => {
@@ -489,49 +464,45 @@ export default function Home() {
     }
   }
 
-  // Universities
+  // Universities (100% PDDikti client API)
   async function fetchUniPage(pageNum: number, q?: string) {
-    // 1. Try client-side PDDikti directly
     try {
-      let allPTs;
-      if (q && q.trim()) {
-        allPTs = await searchUniversitas(q.trim());
-      } else {
-        allPTs = await fetchInitialUniversitas();
-      }
-      if (allPTs.length > 0) {
-        const total = allPTs.length;
-        const pageSize = uniLimit;
-        const start = (pageNum - 1) * pageSize;
-        const paged = allPTs.slice(start, start + pageSize);
-        const data = paged.map(mapPTtoUniversitas) as Universitas[];
-        return { data, total, page: pageNum, limit: pageSize };
-      }
-    } catch { /* fallthrough */ }
+      const res = q && q.trim()
+        ? await searchUniversitas(q.trim(), pageNum, uniLimit)
+        : await fetchInitialUniversitas(pageNum, uniLimit);
 
-    // 2. Fallback: backend API
-    try {
-      const res = await listUniversitas(undefined, q || undefined, pageNum, uniLimit);
-      return res;
+      if (res && Array.isArray(res.data)) {
+        const mapped = res.data.map(mapPTtoUniversitas) as Universitas[];
+        return { data: mapped, total: res.total, page: pageNum, limit: uniLimit };
+      }
     } catch (e) {
-      return { data: [], total: 0, page: pageNum, limit: uniLimit } as any;
+      console.error("Gagal load universitas:", e);
     }
+    return { data: [], total: 0, page: pageNum, limit: uniLimit };
   }
 
   useEffect(() => {
-    // Reset immediately to avoid stale empty list flash
-    setUniversitasList([]);
+    let isCancelled = false;
     setUniLoadingMore(true);
+    const delay = uniQuery ? 300 : 0;
     const t = setTimeout(() => {
       fetchUniPage(1, uniQuery)
         .then((res) => {
-          setUniversitasList(res.data);
-          setUniTotal(res.total);
-          setUniPage(1);
+          if (!isCancelled) {
+            setUniversitasList(res.data);
+            setUniTotal(res.total);
+            setUniPage(1);
+          }
         })
-        .finally(() => setUniLoadingMore(false));
-    }, 400);
-    return () => clearTimeout(t);
+        .finally(() => {
+          if (!isCancelled) setUniLoadingMore(false);
+        });
+    }, delay);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(t);
+    };
   }, [uniQuery]);
 
   async function loadMoreUni() {
@@ -541,9 +512,15 @@ export default function Home() {
     const next = uniPage + 1;
     try {
       const res = await fetchUniPage(next, uniQuery);
-      setUniversitasList((prev) => [...prev, ...res.data]);
-      setUniPage(next);
-      setUniTotal(res.total);
+      if (res.data && res.data.length > 0) {
+        setUniversitasList((prev) => {
+          const existingIds = new Set(prev.map((u) => u.id));
+          const newItems = res.data.filter((u: Universitas) => !existingIds.has(u.id));
+          return [...prev, ...newItems];
+        });
+        setUniPage(next);
+        setUniTotal(res.total);
+      }
     } finally {
       setUniLoadingMore(false);
     }
@@ -556,52 +533,50 @@ export default function Home() {
     }
   }
 
+  // Prodi (100% PDDikti client API)
   async function fetchProdiPage(pageNum: number, uniId?: string, q?: string) {
-    if (!uniId) return { data: [], total: 0, page: pageNum, limit: prodiLimit } as any;
+    if (!uniId) return { data: [], total: 0, page: pageNum, limit: prodiLimit };
 
-    // 1. Try client-side PDDikti directly
     try {
-      const allProdi = await fetchProdiByPT(uniId);
-      if (allProdi.length > 0) {
+      const res = await fetchProdiByPT(uniId, pageNum, prodiLimit);
+      if (res && Array.isArray(res.data)) {
         const uniName = selectedUniversitas?.namaUniversitas ?? '';
-        // Filter by search query if provided
-        const filtered = q
-          ? allProdi.filter((p) =>
-              p.programStudi.toLowerCase().includes(q.toLowerCase()) ||
-              (p.jenjang?.nama && p.jenjang.nama.toLowerCase().includes(q.toLowerCase()))
-            )
-          : allProdi;
-        const total = filtered.length;
-        const start = (pageNum - 1) * prodiLimit;
-        const paged = filtered.slice(start, start + prodiLimit);
-        const data = paged.map((p) => mapPddiktiProdiToProdi(p, uniId, uniName));
-        return { data, total, page: pageNum, limit: prodiLimit };
+        let mapped = res.data.map((p) => mapPddiktiProdiToProdi(p, uniId, uniName)) as Prodi[];
+        if (q && q.trim()) {
+          const lowerQ = q.trim().toLowerCase();
+          mapped = mapped.filter((p) => p.programStudi.toLowerCase().includes(lowerQ));
+        }
+        return { data: mapped, total: res.total, page: pageNum, limit: prodiLimit };
       }
-    } catch { /* fallthrough */ }
-
-    // 2. Fallback: backend API
-    try {
-      const res = await listProdi(uniId, 'nilai_tertinggi', q || undefined, pageNum, prodiLimit);
-      return res;
     } catch (e) {
-      return { data: [], total: 0, page: pageNum, limit: prodiLimit } as any;
+      console.error("Gagal load prodi:", e);
     }
+    return { data: [], total: 0, page: pageNum, limit: prodiLimit };
   }
 
   useEffect(() => {
     if (!selectedUniversitas) return;
-    setProdiList([]);
+    let isCancelled = false;
     setProdiLoadingMore(true);
+    const delay = prodiQuery ? 300 : 0;
     const t = setTimeout(() => {
       fetchProdiPage(1, selectedUniversitas.id, prodiQuery)
         .then((res) => {
-          setProdiList(res.data);
-          setProdiTotal(res.total);
-          setProdiPage(1);
+          if (!isCancelled) {
+            setProdiList(res.data);
+            setProdiTotal(res.total);
+            setProdiPage(1);
+          }
         })
-        .finally(() => setProdiLoadingMore(false));
-    }, 400);
-    return () => clearTimeout(t);
+        .finally(() => {
+          if (!isCancelled) setProdiLoadingMore(false);
+        });
+    }, delay);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(t);
+    };
   }, [prodiQuery, selectedUniversitas]);
 
   async function loadMoreProdi() {
@@ -612,9 +587,15 @@ export default function Home() {
     const next = prodiPage + 1;
     try {
       const res = await fetchProdiPage(next, selectedUniversitas.id, prodiQuery);
-      setProdiList((prev) => [...prev, ...res.data]);
-      setProdiPage(next);
-      setProdiTotal(res.total);
+      if (res.data && res.data.length > 0) {
+        setProdiList((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id));
+          const newItems = res.data.filter((p: Prodi) => !existingIds.has(p.id));
+          return [...prev, ...newItems];
+        });
+        setProdiPage(next);
+        setProdiTotal(res.total);
+      }
     } finally {
       setProdiLoadingMore(false);
     }
@@ -668,18 +649,6 @@ export default function Home() {
     setJurusanId("");
     const universitas = universitasList.find((u) => u.id === val);
     setSelectedUniversitas(universitas ?? null);
-    if (universitas) {
-      // load first page of prodi for this university
-      listProdi(universitas.id, 'nilai_tertinggi', undefined, 1, prodiLimit)
-        .then((res) => {
-          setProdiList(res.data);
-          setProdiTotal(res.total);
-          setProdiPage(1);
-        })
-        .catch(() => setProdiList([]));
-    } else {
-      setProdiList([]);
-    }
   }
 
   function onJurusanChange(id: string) {
