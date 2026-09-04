@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { SNBP_DATA } from '@/lib/data-univ';
 
 const PDDIKTI_BASE = 'https://pddikti.kemdiktisaintek.go.id/api';
 
@@ -12,7 +13,7 @@ async function pddiktiFetch(path: string): Promise<any | null> {
   try {
     const res = await fetch(`${PDDIKTI_BASE}${path}`, {
       headers: HEADERS,
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(4000),
       cache: 'no-store',
     });
     if (!res.ok) return null;
@@ -32,26 +33,17 @@ export async function GET(request: NextRequest) {
   const limit = Number(searchParams.get('limit')) || 20;
 
   try {
+    let prodiItems: any[] = [];
+
     if (ptId) {
-      // 1. Fetch prodi by PT ID (try semester 20251 then 20241)
-      let prodiList = await pddiktiFetch(`/pt/prodi/${ptId}/20251`);
-      if (!prodiList || !Array.isArray(prodiList) || prodiList.length === 0) {
-        prodiList = await pddiktiFetch(`/pt/prodi/${ptId}/20241`);
+      // 1. Try PDDikti live API first
+      let pddiktiList = await pddiktiFetch(`/pt/prodi/${ptId}/20251`);
+      if (!pddiktiList || !Array.isArray(pddiktiList) || pddiktiList.length === 0) {
+        pddiktiList = await pddiktiFetch(`/pt/prodi/${ptId}/20241`);
       }
 
-      if (Array.isArray(prodiList) && prodiList.length > 0) {
-        const filtered = search
-          ? prodiList.filter((p: any) =>
-              p.nama_prodi?.toLowerCase().includes(search.toLowerCase()) ||
-              p.jenjang_prodi?.toLowerCase().includes(search.toLowerCase())
-            )
-          : prodiList;
-
-        const total = filtered.length;
-        const start = (page - 1) * limit;
-        const paginated = filtered.slice(start, start + limit);
-
-        const transformed = paginated.map((p: any) => ({
+      if (Array.isArray(pddiktiList) && pddiktiList.length > 0) {
+        prodiItems = pddiktiList.map((p: any) => ({
           id: p.id_sms,
           programStudi: p.nama_prodi,
           nilai: 0,
@@ -71,43 +63,52 @@ export async function GET(request: NextRequest) {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }));
-
-        return NextResponse.json({ data: transformed, total, page, limit });
       }
-    } else if (search) {
-      // 2. Search prodi nationally
-      const results = await pddiktiFetch(`/pencarian/prodi/${encodeURIComponent(search)}`);
-      if (Array.isArray(results) && results.length > 0) {
-        const total = results.length;
-        const start = (page - 1) * limit;
-        const paginated = results.slice(start, start + limit);
 
-        const transformed = paginated.map((p: any) => ({
-          id: p.id,
-          programStudi: p.nama,
-          nilai: 0,
-          levelKeketatan: 'KETAT',
-          universitasId: p.id,
-          kelompokId: null,
-          jenjangId: null,
-          universitas: {
-            id: p.id,
-            namaUniversitas: p.pt || '',
-            singkatan: p.pt_singkat || '',
-            provinsi: 'Indonesia',
-            ranking: null,
-          },
-          kelompok: { id: null, nama: '' },
-          jenjang: { id: null, nama: p.jenjang || '' },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }));
+      // 2. Fallback to SNBP_DATA if live fetch returns nothing (e.g. Vercel timeout/geo-block)
+      if (prodiItems.length === 0) {
+        const localMatches = SNBP_DATA.filter((s) =>
+          s.universitas.toLowerCase().includes(ptId.toLowerCase()) ||
+          (s.singkatan && s.singkatan.toLowerCase() === ptId.toLowerCase())
+        );
 
-        return NextResponse.json({ data: transformed, total, page, limit });
+        if (localMatches.length > 0) {
+          prodiItems = localMatches.map((s, idx) => ({
+            id: s.code || `${ptId}-${idx}`,
+            programStudi: s.programStudi,
+            nilai: s.estimasiNilaiMin || 85,
+            levelKeketatan: s.levelKeketatan || 'KETAT',
+            universitasId: ptId,
+            kelompokId: null,
+            jenjangId: null,
+            universitas: {
+              id: ptId,
+              namaUniversitas: s.universitas,
+              singkatan: s.singkatan || '',
+              provinsi: s.provinsi || 'Indonesia',
+              ranking: s.rankingPTN || null,
+            },
+            kelompok: { id: null, nama: s.kelompok || '' },
+            jenjang: { id: null, nama: s.jenjang || 'S1' },
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }));
+        }
       }
     }
 
-    return NextResponse.json({ data: [], total: 0, page, limit });
+    const filtered = search
+      ? prodiItems.filter((p: any) =>
+          p.programStudi?.toLowerCase().includes(search.toLowerCase()) ||
+          p.jenjang?.nama?.toLowerCase().includes(search.toLowerCase())
+        )
+      : prodiItems;
+
+    const total = filtered.length;
+    const start = (page - 1) * limit;
+    const paginated = filtered.slice(start, start + limit);
+
+    return NextResponse.json({ data: paginated, total, page, limit });
   } catch (err: any) {
     return NextResponse.json(
       { message: err?.message || 'Gagal mengambil data prodi' },

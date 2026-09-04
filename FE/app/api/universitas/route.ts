@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import uniDatabase from '@/lib/universitas-database.json';
 
 const PDDIKTI_BASE = 'https://pddikti.kemdiktisaintek.go.id/api';
 
@@ -12,19 +13,17 @@ async function pddiktiFetch(path: string): Promise<any | null> {
   try {
     const res = await fetch(`${PDDIKTI_BASE}${path}`, {
       headers: HEADERS,
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(4000),
       cache: 'no-store',
     });
     if (!res.ok) return null;
     const json = await res.json();
-    if (json?.status === 'success' && json?.data) return json.data;
+    if (json?.status === 'success' && Array.isArray(json?.data) && json.data.length > 0) return json.data;
     return null;
   } catch {
     return null;
   }
 }
-
-const BROAD_QUERIES = ['universitas', 'institut', 'politeknik', 'sekolah tinggi', 'akademi'];
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -35,28 +34,52 @@ export async function GET(request: NextRequest) {
   try {
     let items: any[] = [];
 
+    // 1. Try PDDikti live search first
     if (search) {
-      // Search specific query
-      const results = await pddiktiFetch(`/pencarian/pt/${encodeURIComponent(search)}`);
-      if (Array.isArray(results)) {
-        items = results;
+      const pddiktiResults = await pddiktiFetch(`/pencarian/pt/${encodeURIComponent(search)}`);
+      if (pddiktiResults && pddiktiResults.length > 0) {
+        items = pddiktiResults.map((pt: any) => ({
+          id: pt.id,
+          namaUniversitas: pt.nama,
+          singkatan: pt.nama_singkat || '',
+          provinsi: 'Indonesia',
+          ranking: null,
+          jumlahProdi: 0,
+          nilaiRataRata: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
       }
-    } else {
-      // Broad initial list (merge 5 queries)
-      const fetchResults = await Promise.allSettled(
-        BROAD_QUERIES.map((q) => pddiktiFetch(`/pencarian/pt/${encodeURIComponent(q)}`))
-      );
+    }
 
-      const seen = new Set<string>();
-      for (const r of fetchResults) {
-        if (r.status === 'fulfilled' && Array.isArray(r.value)) {
-          for (const pt of r.value) {
-            if (pt.id && !seen.has(pt.id)) {
-              seen.add(pt.id);
-              items.push(pt);
-            }
-          }
-        }
+    // 2. If items is empty (e.g. live API timeout/geo-block or initial view or no search match from live), use master database (4,652 universities)
+    if (items.length === 0) {
+      if (search) {
+        const q = search.toLowerCase();
+        // Priority match: exact singkatan or starts with name or includes name
+        const matches = uniDatabase.filter((u: any) =>
+          u.namaUniversitas.toLowerCase().includes(q) ||
+          (u.singkatan && u.singkatan.toLowerCase().includes(q)) ||
+          (u.kode && u.kode.toLowerCase().includes(q))
+        );
+
+        // Sort so exact matches or singkatan matches come first
+        matches.sort((a: any, b: any) => {
+          const aName = a.namaUniversitas.toLowerCase();
+          const bName = b.namaUniversitas.toLowerCase();
+          const aSing = (a.singkatan || '').toLowerCase();
+          const bSing = (b.singkatan || '').toLowerCase();
+
+          if (aSing === q && bSing !== q) return -1;
+          if (bSing === q && aSing !== q) return 1;
+          if (aName.startsWith(q) && !bName.startsWith(q)) return -1;
+          if (bName.startsWith(q) && !aName.startsWith(q)) return 1;
+          return aName.localeCompare(bName);
+        });
+
+        items = matches;
+      } else {
+        items = uniDatabase;
       }
     }
 
@@ -64,20 +87,8 @@ export async function GET(request: NextRequest) {
     const start = (page - 1) * limit;
     const paginated = items.slice(start, start + limit);
 
-    const transformed = paginated.map((pt) => ({
-      id: pt.id,
-      namaUniversitas: pt.nama,
-      singkatan: pt.nama_singkat || '',
-      provinsi: 'Indonesia',
-      ranking: null,
-      jumlahProdi: 0,
-      nilaiRataRata: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
-
     return NextResponse.json({
-      data: transformed,
+      data: paginated,
       total,
       page,
       limit,
