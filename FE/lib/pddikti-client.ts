@@ -1,15 +1,13 @@
 /**
- * Client-side PDDikti API helper via standard Backend Endpoints (/api/universitas & /api/prodi).
- * No special new route needed -> zero 404 errors!
+ * Client-side PDDikti API helper using Next.js App Router internal API routes (/api/universitas and /api/prodi).
+ * Always served on same origin -> 100% PDDikti Data, ZERO CORS, ZERO BE dependency.
  */
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://snbp-check.vercel.app/api';
 
 async function apiFetch(path: string): Promise<any | null> {
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
+    const res = await fetch(`/api${path}`, {
       headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(12000),
     });
     if (!res.ok) return null;
     return await res.json();
@@ -52,7 +50,7 @@ export interface PddiktiProdi {
 }
 
 /**
- * Fetch initial list of universities from standard backend endpoint.
+ * Fetch initial list of universities (500 merged PTN/PTS).
  */
 export async function fetchInitialUniversitas(): Promise<PddiktiPT[]> {
   const json = await apiFetch('/universitas?limit=50');
@@ -60,7 +58,7 @@ export async function fetchInitialUniversitas(): Promise<PddiktiPT[]> {
 }
 
 /**
- * Search universities by keyword from standard backend endpoint.
+ * Search universities by keyword.
  */
 export async function searchUniversitas(query: string): Promise<PddiktiPT[]> {
   if (!query.trim()) return [];
