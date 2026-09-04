@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import { searchPT } from '../lib/pddikti';
 
 const universitasSchema = z.object({
   namaUniversitas: z
@@ -36,9 +37,41 @@ export async function listUniversitas(req: Request, res: Response) {
   const sort = String(req.query.sort ?? 'ranking_tertinggi');
   const search = String(req.query.search ?? '').trim();
   const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 5;
+  const limit = Number(req.query.limit) || 20;
 
-  // default: ranking tertinggi => ranking ASC (1,2,3)
+  if (search) {
+    try {
+      const pddiktiResults = await searchPT(search);
+      if (pddiktiResults && pddiktiResults.length > 0) {
+        const total = pddiktiResults.length;
+        const startIndex = (page - 1) * limit;
+        const paginated = pddiktiResults.slice(startIndex, startIndex + limit);
+
+        const transformed = paginated.map((pt) => ({
+          id: pt.id,
+          namaUniversitas: pt.nama,
+          singkatan: pt.nama_singkat || '',
+          provinsi: 'Indonesia',
+          ranking: null,
+          jumlahProdi: 0,
+          nilaiRataRata: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
+
+        return res.status(200).json({
+          data: transformed,
+          total,
+          page,
+          limit,
+        });
+      }
+    } catch {
+      // Fallback to local database if PDDikti fetch fails
+    }
+  }
+
+  // Fallback or default query to local database
   let orderBy: any = { createdAt: 'desc' };
   if (sort === 'ranking_tertinggi') {
     orderBy = { ranking: 'asc' };

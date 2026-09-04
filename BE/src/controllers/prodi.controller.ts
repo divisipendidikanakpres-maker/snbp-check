@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { computeLevelKeketatan } from '../lib/level-keketatan';
+import { getProdiByPT, searchProdi } from '../lib/pddikti';
 
 const prodiSchema = z.object({
   universitasId: z.string().trim().min(1, 'Universitas wajib dipilih.'),
@@ -11,13 +12,105 @@ const prodiSchema = z.object({
   nilai: z.coerce.number().min(0, 'Nilai tidak valid.').max(100, 'Nilai tidak valid.'),
 });
 
+/** UUID format (standard 8-4-4-4-12 hex). If id is NOT UUID it's likely a PDDikti encrypted id. */
+function isPddiktiId(id: string): boolean {
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return !UUID_REGEX.test(id);
+}
+
+function buildFakeProdi(p: any, ptId: string, universitas: any) {
+  return {
+    id: p.id_sms,
+    programStudi: p.nama_prodi,
+    nilai: 0,
+    levelKeketatan: 'KETAT',
+    universitasId: ptId,
+    kelompokId: null,
+    jenjangId: null,
+    universitas: universitas ?? {
+      id: ptId,
+      namaUniversitas: '',
+      singkatan: '',
+      provinsi: '',
+      ranking: null,
+    },
+    kelompok: { id: null, nama: '' },
+    jenjang: { id: null, nama: p.jenjang_prodi || '' },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function buildFakeProdiFromSearch(p: any) {
+  return {
+    id: p.id,
+    programStudi: p.nama,
+    nilai: 0,
+    levelKeketatan: 'KETAT',
+    universitasId: p.id,
+    kelompokId: null,
+    jenjangId: null,
+    universitas: {
+      id: p.id,
+      namaUniversitas: p.pt || '',
+      singkatan: p.pt_singkat || '',
+      provinsi: 'Indonesia',
+      ranking: null,
+    },
+    kelompok: { id: null, nama: '' },
+    jenjang: { id: null, nama: p.jenjang || '' },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 export async function listProdi(req: Request, res: Response) {
   const { universitasId } = req.query;
   const sort = String(req.query.sort ?? 'nilai_tertinggi');
   const search = String(req.query.search ?? '').trim();
   const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 5;
+  const limit = Number(req.query.limit) || 20;
 
+  // — PDDikti: fetch prodi by university when universitasId is a PDDikti encrypted ID —
+  if (universitasId && isPddiktiId(String(universitasId))) {
+    try {
+      const ptId = String(universitasId);
+      const pddiktiProdi = await getProdiByPT(ptId);
+      if (pddiktiProdi && pddiktiProdi.length > 0) {
+        // Filter by search if present
+        const filtered = search
+          ? pddiktiProdi.filter((p) =>
+              p.nama_prodi.toLowerCase().includes(search.toLowerCase()) ||
+              p.jenjang_prodi.toLowerCase().includes(search.toLowerCase())
+            )
+          : pddiktiProdi;
+
+        const total = filtered.length;
+        const paginated = filtered.slice((page - 1) * limit, (page - 1) * limit + limit);
+        const data = paginated.map((p) => buildFakeProdi(p, ptId, null));
+        return res.status(200).json({ data, total, page, limit });
+      }
+    } catch {
+      // fallthrough to DB
+    }
+  }
+
+  // — PDDikti: search prodi nationally if search is provided and we have no universitasId —
+  if (search && !universitasId) {
+    try {
+      const pddiktiResults = await searchProdi(search);
+      if (pddiktiResults && pddiktiResults.length > 0) {
+        const total = pddiktiResults.length;
+        const paginated = pddiktiResults.slice((page - 1) * limit, (page - 1) * limit + limit);
+        const data = paginated.map(buildFakeProdiFromSearch);
+        return res.status(200).json({ data, total, page, limit });
+      }
+    } catch {
+      // fallthrough to DB
+    }
+  }
+
+  // — Fallback: local DB —
   let orderBy: any = { createdAt: 'desc' };
   if (sort === 'nilai_tertinggi') {
     orderBy = { nilai: 'desc' };
@@ -25,7 +118,10 @@ export async function listProdi(req: Request, res: Response) {
     orderBy = { nilai: 'asc' };
   }
 
-  const baseWhere: any = universitasId ? { universitasId: String(universitasId) } : undefined;
+  const baseWhere: any = universitasId && !isPddiktiId(String(universitasId))
+    ? { universitasId: String(universitasId) }
+    : undefined;
+
   const searchWhere = search
     ? {
         OR: [
