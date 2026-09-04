@@ -39,6 +39,7 @@ export async function listUniversitas(req: Request, res: Response) {
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 20;
 
+  // — PDDikti: search by explicit query —
   if (search) {
     try {
       const pddiktiResults = await searchPT(search);
@@ -46,7 +47,6 @@ export async function listUniversitas(req: Request, res: Response) {
         const total = pddiktiResults.length;
         const startIndex = (page - 1) * limit;
         const paginated = pddiktiResults.slice(startIndex, startIndex + limit);
-
         const transformed = paginated.map((pt) => ({
           id: pt.id,
           namaUniversitas: pt.nama,
@@ -58,20 +58,56 @@ export async function listUniversitas(req: Request, res: Response) {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }));
-
-        return res.status(200).json({
-          data: transformed,
-          total,
-          page,
-          limit,
-        });
+        return res.status(200).json({ data: transformed, total, page, limit });
       }
     } catch {
       // Fallback to local database if PDDikti fetch fails
     }
   }
 
-  // Fallback or default query to local database
+  // — PDDikti: no search → load broad list from PDDikti with multiple keyword queries —
+  if (!search) {
+    try {
+      const BROAD_QUERIES = ['universitas', 'institut', 'politeknik', 'sekolah tinggi', 'akademi'];
+      const results = await Promise.allSettled(BROAD_QUERIES.map((q) => searchPT(q)));
+
+      // Merge & de-duplicate by id
+      const seen = new Set<string>();
+      const merged: any[] = [];
+      for (const r of results) {
+        if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+          for (const pt of r.value) {
+            if (!seen.has(pt.id)) {
+              seen.add(pt.id);
+              merged.push(pt);
+            }
+          }
+        }
+      }
+
+      if (merged.length > 0) {
+        const total = merged.length;
+        const startIndex = (page - 1) * limit;
+        const paginated = merged.slice(startIndex, startIndex + limit);
+        const transformed = paginated.map((pt) => ({
+          id: pt.id,
+          namaUniversitas: pt.nama,
+          singkatan: pt.nama_singkat || '',
+          provinsi: 'Indonesia',
+          ranking: null,
+          jumlahProdi: 0,
+          nilaiRataRata: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
+        return res.status(200).json({ data: transformed, total, page, limit });
+      }
+    } catch {
+      // Fallback to local database
+    }
+  }
+
+  // — Fallback: local DB —
   let orderBy: any = { createdAt: 'desc' };
   if (sort === 'ranking_tertinggi') {
     orderBy = { ranking: 'asc' };
@@ -91,7 +127,6 @@ export async function listUniversitas(req: Request, res: Response) {
 
   const skip = (page - 1) * limit;
   const total = await prisma.universitas.count({ where });
-
   const universitas = await prisma.universitas.findMany({
     where,
     orderBy,
