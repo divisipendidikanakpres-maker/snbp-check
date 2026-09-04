@@ -7,7 +7,7 @@ const router = Router();
 router.post('/', requireAuth, createRiwayat);
 router.get('/me', requireAuth, listMyRiwayat);
 router.get('/', requireAuth, requireAdmin, listRiwayat);
-router.delete('/:id', requireAuth, requireAdmin, deleteRiwayat);
+router.delete('/:id', requireAuth, deleteRiwayat);
 
 export default router;
 
