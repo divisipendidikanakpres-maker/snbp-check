@@ -1202,6 +1202,8 @@ export default function Home() {
                     <Combobox
                       items={ptnItems}
                       value={selectedPtnItem}
+                      filter={null}
+                      autoComplete="none"
                       onValueChange={(item) => {
                         if (!item?.value) return;
                         loadJurusan(item.value);
@@ -1248,6 +1250,8 @@ export default function Home() {
                     <Combobox
                       items={jurusanItems}
                       value={selectedJurusanItem}
+                      filter={null}
+                      autoComplete="none"
                       onValueChange={(item) => {
                         if (!item?.value) return;
                         onJurusanChange(item.value);
