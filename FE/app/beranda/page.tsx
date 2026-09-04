@@ -567,8 +567,8 @@ export default function Home() {
         // Filter by search query if provided
         const filtered = q
           ? allProdi.filter((p) =>
-              p.nama_prodi.toLowerCase().includes(q.toLowerCase()) ||
-              p.jenjang_prodi.toLowerCase().includes(q.toLowerCase())
+              p.programStudi.toLowerCase().includes(q.toLowerCase()) ||
+              (p.jenjang?.nama && p.jenjang.nama.toLowerCase().includes(q.toLowerCase()))
             )
           : allProdi;
         const total = filtered.length;

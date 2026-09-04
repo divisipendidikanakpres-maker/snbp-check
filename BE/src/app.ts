@@ -8,6 +8,7 @@ import usersRoutes from './routes/users.routes';
 import prodiRoutes from './routes/prodi.routes';
 import riwayatRoutes from './routes/riwayat.routes';
 import lookupRoutes from './routes/lookup.routes';
+import pddiktiRoutes from './routes/pddikti.routes';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 
 const app = express();
@@ -35,6 +36,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/prodi', prodiRoutes);
 app.use('/api/riwayat', riwayatRoutes);
 app.use('/api/lookup', lookupRoutes);
+app.use('/api/pddikti', pddiktiRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

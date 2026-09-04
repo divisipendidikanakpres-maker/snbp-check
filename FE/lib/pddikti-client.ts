@@ -1,25 +1,18 @@
 /**
- * Client-side PDDikti API helper.
- * Fetches directly from browser → no backend needed, no Vercel serverless restrictions.
+ * Client-side PDDikti API helper via Backend Proxy.
+ * Calls /api/pddikti/* on backend -> avoids CORS issues entirely!
  */
 
-const PDDIKTI_BASE = 'https://pddikti.kemdiktisaintek.go.id/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api-snbp.goprestasi.com/api';
 
-const HEADERS = {
-  'Accept': 'application/json',
-  'Referer': 'https://pddikti.kemdiktisaintek.go.id/',
-};
-
-async function pddiktiFetch(path: string): Promise<any | null> {
+async function apiFetch(path: string): Promise<any | null> {
   try {
-    const res = await fetch(`${PDDIKTI_BASE}${path}`, {
-      headers: HEADERS,
-      signal: AbortSignal.timeout(8000),
+    const res = await fetch(`${API_BASE}${path}`, {
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) return null;
-    const json = await res.json();
-    if (json?.status === 'success' && json?.data) return json.data;
-    return null;
+    return await res.json();
   } catch {
     return null;
   }
@@ -27,55 +20,43 @@ async function pddiktiFetch(path: string): Promise<any | null> {
 
 export interface PddiktiPT {
   id: string;
-  kode: string;
-  nama_singkat: string;
-  nama: string;
+  namaUniversitas: string;
+  singkatan: string;
+  provinsi: string;
+  ranking: number | null;
+  jumlahProdi: number;
+  nilaiRataRata: number | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PddiktiProdi {
-  id_sms: string;
-  kode_prodi: string;
-  nama_prodi: string;
-  jenjang_prodi: string;
-  akreditasi: string;
-  status_prodi: string;
-}
-
-export interface PddiktiProdiSearch {
   id: string;
-  nama: string;
-  jenjang: string;
-  pt: string;
-  pt_singkat: string;
+  programStudi: string;
+  nilai: number;
+  levelKeketatan: string;
+  universitasId: string;
+  kelompokId: string | null;
+  jenjangId: string | null;
+  universitas: {
+    id: string;
+    namaUniversitas: string;
+    singkatan: string;
+    provinsi: string;
+    ranking: number | null;
+  };
+  kelompok: { id: string | null; nama: string };
+  jenjang: { id: string | null; nama: string };
+  createdAt: string;
+  updatedAt: string;
 }
-
-/** Broad keyword queries used for initial load. Each returns up to 100 results. */
-const BROAD_QUERIES = ['universitas', 'institut', 'politeknik', 'sekolah tinggi', 'akademi'];
 
 /**
- * Fetch initial list of universities from PDDikti using broad queries.
- * Returns up to 500 deduplicated universities.
+ * Fetch initial list of universities (500 merged PTN/PTS).
  */
 export async function fetchInitialUniversitas(): Promise<PddiktiPT[]> {
-  const results = await Promise.allSettled(
-    BROAD_QUERIES.map((q) => pddiktiFetch(`/pencarian/pt/${encodeURIComponent(q)}`))
-  );
-
-  const seen = new Set<string>();
-  const merged: PddiktiPT[] = [];
-
-  for (const r of results) {
-    if (r.status === 'fulfilled' && Array.isArray(r.value)) {
-      for (const pt of r.value as PddiktiPT[]) {
-        if (!seen.has(pt.id)) {
-          seen.add(pt.id);
-          merged.push(pt);
-        }
-      }
-    }
-  }
-
-  return merged;
+  const json = await apiFetch('/pddikti/universitas?limit=50');
+  return json?.data ?? [];
 }
 
 /**
@@ -83,86 +64,39 @@ export async function fetchInitialUniversitas(): Promise<PddiktiPT[]> {
  */
 export async function searchUniversitas(query: string): Promise<PddiktiPT[]> {
   if (!query.trim()) return [];
-  const data = await pddiktiFetch(`/pencarian/pt/${encodeURIComponent(query.trim())}`);
-  return Array.isArray(data) ? (data as PddiktiPT[]) : [];
+  const json = await apiFetch(`/pddikti/universitas?search=${encodeURIComponent(query.trim())}&limit=50`);
+  return json?.data ?? [];
 }
 
 /**
- * Get prodi list for a given university ID (PDDikti encrypted id).
+ * Get prodi list for a given university ID.
  */
-export async function fetchProdiByPT(ptId: string, semester = '20251'): Promise<PddiktiProdi[]> {
-  const data = await pddiktiFetch(`/pt/prodi/${ptId}/${semester}`);
-  return Array.isArray(data) ? (data as PddiktiProdi[]) : [];
+export async function fetchProdiByPT(ptId: string): Promise<PddiktiProdi[]> {
+  const json = await apiFetch(`/pddikti/prodi?ptId=${encodeURIComponent(ptId)}&limit=100`);
+  return json?.data ?? [];
 }
 
 /**
  * Search prodi nationally by keyword.
  */
-export async function searchProdiNational(query: string): Promise<PddiktiProdiSearch[]> {
+export async function searchProdiNational(query: string): Promise<PddiktiProdi[]> {
   if (!query.trim()) return [];
-  const data = await pddiktiFetch(`/pencarian/prodi/${encodeURIComponent(query.trim())}`);
-  return Array.isArray(data) ? (data as PddiktiProdiSearch[]) : [];
+  const json = await apiFetch(`/pddikti/prodi?search=${encodeURIComponent(query.trim())}&limit=50`);
+  return json?.data ?? [];
 }
 
-/** Convert a PDDiktiPT to a standardized Universitas-like object compatible with the FE Universitas type */
+/** Utility mapping functions for backward compatibility */
 export function mapPTtoUniversitas(pt: PddiktiPT) {
-  return {
-    id: pt.id,
-    namaUniversitas: pt.nama,
-    singkatan: pt.nama_singkat || '',
-    provinsi: 'Indonesia',
-    ranking: null as number | null,
-    jumlahProdi: 0,
-    nilaiRataRata: null as number | null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+  return pt;
 }
 
-/** Convert a PDDikti prodi (by PT) to a standardized Prodi-like object */
 export function mapPddiktiProdiToProdi(p: PddiktiProdi, ptId: string, namaUniversitas = '') {
-  return {
-    id: p.id_sms,
-    programStudi: p.nama_prodi,
-    nilai: 0,
-    levelKeketatan: 'KETAT' as const,
-    universitasId: ptId,
-    kelompokId: null as string | null,
-    jenjangId: null as string | null,
-    universitas: {
-      id: ptId,
-      namaUniversitas,
-      singkatan: '',
-      provinsi: 'Indonesia',
-      ranking: null as number | null,
-    },
-    kelompok: { id: null as string | null, nama: '' },
-    jenjang: { id: null as string | null, nama: p.jenjang_prodi || '' },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+  if (namaUniversitas && p.universitas) {
+    p.universitas.namaUniversitas = namaUniversitas;
+  }
+  return p;
 }
 
-/** Convert a PDDikti search prodi result to a standardized Prodi-like object */
-export function mapSearchProdiToProdi(p: PddiktiProdiSearch) {
-  return {
-    id: p.id,
-    programStudi: p.nama,
-    nilai: 0,
-    levelKeketatan: 'KETAT' as const,
-    universitasId: p.id,
-    kelompokId: null as string | null,
-    jenjangId: null as string | null,
-    universitas: {
-      id: p.id,
-      namaUniversitas: p.pt || '',
-      singkatan: p.pt_singkat || '',
-      provinsi: 'Indonesia',
-      ranking: null as number | null,
-    },
-    kelompok: { id: null as string | null, nama: '' },
-    jenjang: { id: null as string | null, nama: p.jenjang || '' },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+export function mapSearchProdiToProdi(p: PddiktiProdi) {
+  return p;
 }
