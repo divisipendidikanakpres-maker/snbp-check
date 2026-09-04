@@ -110,8 +110,8 @@ export default function ProdiPage() {
     setEditingId(prodi.id);
     setForm({
       programStudi: prodi.programStudi,
-      kelompokId: prodi.kelompokId,
-      jenjangId: prodi.jenjangId,
+      kelompokId: prodi.kelompokId ?? '',
+      jenjangId: prodi.jenjangId ?? '',
       nilai: String(prodi.nilai),
     });
     setError(null);
@@ -168,8 +168,8 @@ export default function ProdiPage() {
   const handleExport = () => {
     const rows = data.map((prodi) => ({
       "Program Studi": prodi.programStudi,
-      Jenjang: prodi.jenjang.nama,
-      Kelompok: prodi.kelompok.nama,
+      Jenjang: prodi.jenjang?.nama ?? '-',
+      Kelompok: prodi.kelompok?.nama ?? '-',
       Nilai: prodi.nilai,
       "Level Keketatan": LEVEL_KEKETATAN_INFO[prodi.levelKeketatan]?.label ?? prodi.levelKeketatan,
     }));
@@ -245,11 +245,11 @@ export default function ProdiPage() {
               return (
                 <TableRow key={prodi.id}>
                   <TableCell>{prodi.programStudi}</TableCell>
-                  <TableCell>{prodi.jenjang.nama}</TableCell>
-                  <TableCell>{prodi.kelompok.nama}</TableCell>
+                  <TableCell>{prodi.jenjang?.nama ?? '-'}</TableCell>
+                  <TableCell>{prodi.kelompok?.nama ?? '-'}</TableCell>
                   <TableCell>{prodi.nilai}</TableCell>
-                  <TableCell className={`font-semibold ${levelInfo.className}`}>
-                    {levelInfo.label}
+                  <TableCell className={`font-semibold ${levelInfo?.className ?? ''}`}>
+                    {levelInfo?.label ?? prodi.levelKeketatan}
                   </TableCell>
                   <TableCell className="space-x-2">
                     <Button

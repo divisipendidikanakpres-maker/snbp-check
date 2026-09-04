@@ -568,7 +568,9 @@ export default function Home() {
       .sort((a, b) => (a.ranking ?? 999) - (b.ranking ?? 999))
       .map((u) => ({
         value: u.id,
-        label: `#${u.ranking ?? '-'} ${u.namaUniversitas} (${u.singkatan})`,
+        label: u.ranking != null
+          ? `${u.ranking}. ${u.namaUniversitas}${u.singkatan ? ` (${u.singkatan})` : ''}`
+          : `${u.namaUniversitas}${u.singkatan ? ` (${u.singkatan})` : ''}`,
       }));
   }, [universitasList]);
 
@@ -578,7 +580,9 @@ export default function Home() {
       .sort((a, b) => b.nilai - a.nilai)
       .map((d) => ({
         value: d.id,
-        label: `${d.programStudi} (${d.kelompok.nama})`,
+        label: d.kelompok?.nama
+          ? `${d.programStudi} (${d.kelompok.nama})`
+          : `${d.programStudi}${d.jenjang?.nama ? ` - ${d.jenjang.nama}` : ''}`,
       }));
   }, [prodiList]);
 

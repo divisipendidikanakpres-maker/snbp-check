@@ -208,7 +208,7 @@ export default function UniversitasPage() {
                 <TableRow key={univ.id} className="hover:bg-[#f2f8f8]/60 transition-colors border-b border-[#f0f6f6]">
                   <TableCell className="py-3.5 px-5 hidden md:table-cell">
                     <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#03989E]/10 text-[#02747A] font-bold text-xs">
-                      #{univ.ranking ?? "-"}
+                      {univ.ranking ?? "-"}
                     </span>
                   </TableCell>
                   <TableCell className="py-3.5 px-5">
