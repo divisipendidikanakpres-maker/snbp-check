@@ -27,6 +27,13 @@ import { useSekolah } from "@/hooks/useSekolah";
 import { useUniversitas, type Universitas } from "@/hooks/useUniversitas";
 import { useProdi, type Prodi } from "@/hooks/useProdi";
 import { useHistory } from "@/hooks/useHistory";
+import {
+  fetchInitialUniversitas,
+  searchUniversitas,
+  fetchProdiByPT,
+  mapPTtoUniversitas,
+  mapPddiktiProdiToProdi,
+} from "@/lib/pddikti-client";
 import { InfoIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -137,15 +144,31 @@ export default function Home() {
   const [prodiLoadingMore, setProdiLoadingMore] = useState(false);
   const [prodiQuery, setProdiQuery] = useState("");
 
-  // initial load universitas
+  // initial load universitas — use client-side PDDikti directly
   useEffect(() => {
-    listUniversitas(undefined, undefined, 1, uniLimit)
-      .then((res) => {
-        setUniversitasList(res.data);
-        setUniTotal(res.total);
-        setUniPage(1);
+    setUniLoadingMore(true);
+    fetchInitialUniversitas()
+      .then((pts) => {
+        if (pts.length > 0) {
+          const mapped = pts.map(mapPTtoUniversitas) as Universitas[];
+          setUniversitasList(mapped);
+          setUniTotal(mapped.length);
+          setUniPage(1);
+        } else {
+          // fallback to backend
+          return listUniversitas(undefined, undefined, 1, uniLimit).then((res) => {
+            setUniversitasList(res.data);
+            setUniTotal(res.total);
+            setUniPage(1);
+          });
+        }
       })
-      .catch(() => setUniversitasList([]));
+      .catch(() => {
+        listUniversitas(undefined, undefined, 1, uniLimit)
+          .then((res) => { setUniversitasList(res.data); setUniTotal(res.total); })
+          .catch(() => setUniversitasList([]));
+      })
+      .finally(() => setUniLoadingMore(false));
   }, []);
 
   // Load sekolah saat kota dipilih (cascade) atau saat schoolQuery berubah
@@ -468,6 +491,25 @@ export default function Home() {
 
   // Universities
   async function fetchUniPage(pageNum: number, q?: string) {
+    // 1. Try client-side PDDikti directly
+    try {
+      let allPTs;
+      if (q && q.trim()) {
+        allPTs = await searchUniversitas(q.trim());
+      } else {
+        allPTs = await fetchInitialUniversitas();
+      }
+      if (allPTs.length > 0) {
+        const total = allPTs.length;
+        const pageSize = uniLimit;
+        const start = (pageNum - 1) * pageSize;
+        const paged = allPTs.slice(start, start + pageSize);
+        const data = paged.map(mapPTtoUniversitas) as Universitas[];
+        return { data, total, page: pageNum, limit: pageSize };
+      }
+    } catch { /* fallthrough */ }
+
+    // 2. Fallback: backend API
     try {
       const res = await listUniversitas(undefined, q || undefined, pageNum, uniLimit);
       return res;
@@ -514,9 +556,30 @@ export default function Home() {
     }
   }
 
-  // Prodi (per-universitas)
   async function fetchProdiPage(pageNum: number, uniId?: string, q?: string) {
     if (!uniId) return { data: [], total: 0, page: pageNum, limit: prodiLimit } as any;
+
+    // 1. Try client-side PDDikti directly
+    try {
+      const allProdi = await fetchProdiByPT(uniId);
+      if (allProdi.length > 0) {
+        const uniName = selectedUniversitas?.namaUniversitas ?? '';
+        // Filter by search query if provided
+        const filtered = q
+          ? allProdi.filter((p) =>
+              p.nama_prodi.toLowerCase().includes(q.toLowerCase()) ||
+              p.jenjang_prodi.toLowerCase().includes(q.toLowerCase())
+            )
+          : allProdi;
+        const total = filtered.length;
+        const start = (pageNum - 1) * prodiLimit;
+        const paged = filtered.slice(start, start + prodiLimit);
+        const data = paged.map((p) => mapPddiktiProdiToProdi(p, uniId, uniName));
+        return { data, total, page: pageNum, limit: prodiLimit };
+      }
+    } catch { /* fallthrough */ }
+
+    // 2. Fallback: backend API
     try {
       const res = await listProdi(uniId, 'nilai_tertinggi', q || undefined, pageNum, prodiLimit);
       return res;
