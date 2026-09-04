@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { ChartConfig } from "@/components/ui/chart";
 import { badgeClass, getStatusInfo } from "@/lib/utils-snbp";
-import { LEVEL_KEKETATAN_INFO } from "@/lib/level-keketatan";
+import { LEVEL_KEKETATAN_INFO, getLevelKeketatanInfo } from "@/lib/level-keketatan";
 import type { LevelKeketatan } from "@/hooks/useProdi";
 import { FileChartPie } from "lucide-react";
 import Link from "next/link";
+import { NavBar } from "@/components/nav-bar";
 
 const chartConfig: ChartConfig = {
   avgRapor: {
@@ -41,46 +42,52 @@ const chanceChartConfig: ChartConfig = {
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
 
 async function fetchProdi(prodiId: string) {
-  const res = await fetch(`${API_URL}/prodi/${encodeURIComponent(prodiId)}`, {
-    cache: 'no-store',
-  });
-  if (!res.ok) {
-    throw new Error('Gagal mengambil data prodi.');
+  try {
+    const res = await fetch(`${API_URL}/prodi/${encodeURIComponent(prodiId)}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      throw new Error('Gagal mengambil data prodi.');
+    }
+    const json = await res.json();
+    return json.data as {
+      id: string;
+      programStudi: string;
+      nilai: number;
+      levelKeketatan: string;
+      universitas: { namaUniversitas: string; singkatan: string; provinsi: string; ranking: number | null };
+    };
+  } catch (e) {
+    throw e;
   }
-  const json = await res.json();
-  return json.data as {
-    id: string;
-    programStudi: string;
-    nilai: number;
-    levelKeketatan: LevelKeketatan;
-    universitas: { namaUniversitas: string; singkatan: string; provinsi: string; ranking: number | null };
-  };
 }
 
 async function fetchSuggestions(prodiId: string, nilaiAkhir: number) {
-  const searchParams = new URLSearchParams({
-    prodiId,
-    nilaiAkhir: nilaiAkhir.toString(),
-  });
-  const res = await fetch(`${API_URL}/prodi/suggestions?${searchParams.toString()}`, {
-    cache: 'no-store',
-  });
-  if (!res.ok) {
+  try {
+    const searchParams = new URLSearchParams({
+      prodiId,
+      nilaiAkhir: nilaiAkhir.toString(),
+    });
+    const res = await fetch(`${API_URL}/prodi/suggestions?${searchParams.toString()}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      return [];
+    }
+    const json = await res.json();
+    return ((json && json.data) || []) as Array<{
+      id: string;
+      programStudi: string;
+      nilai: number;
+      levelKeketatan: string;
+      universitas?: { namaUniversitas: string };
+      kelompok?: { nama: string };
+      jenjang?: { nama: string };
+    }>;
+  } catch {
     return [];
   }
-  const json = await res.json();
-  return json.data as Array<{
-    id: string;
-    programStudi: string;
-    nilai: number;
-    levelKeketatan: string;
-    universitas: { namaUniversitas: string };
-    kelompok: { nama: string };
-    jenjang: { nama: string };
-  }>;
 }
-
-import { NavBar } from "@/components/nav-bar";
 
 export default async function HasilPage({
   searchParams,
@@ -128,7 +135,7 @@ export default async function HasilPage({
     id: string;
     programStudi: string;
     nilai: number;
-    levelKeketatan: LevelKeketatan;
+    levelKeketatan: string;
     universitas: { namaUniversitas: string; singkatan: string; provinsi: string; ranking: number | null };
   };
 
@@ -137,7 +144,7 @@ export default async function HasilPage({
       id: prodiId || '1',
       programStudi: prodiNama,
       nilai: estimasiParam ? parseFloat(estimasiParam) : 85.0,
-      levelKeketatan: (levelKeketatanParam as LevelKeketatan) || 'KETAT',
+      levelKeketatan: levelKeketatanParam || 'KETAT',
       universitas: {
         namaUniversitas: universitasNama,
         singkatan: '',
@@ -218,7 +225,7 @@ export default async function HasilPage({
               </div>
               <div className="mt-2 inline-flex items-center gap-2">
                 <span className={badgeClass(prodi.levelKeketatan)}>
-                  {LEVEL_KEKETATAN_INFO[prodi.levelKeketatan].label}
+                  {getLevelKeketatanInfo(prodi.levelKeketatan).label}
                 </span>
               </div>
             </div>
@@ -432,7 +439,8 @@ export default async function HasilPage({
               ) : (
                 <div className="space-y-3">
                   {alternatives.map((alt) => {
-                    const diff = nilaiAkhirNum - alt.nilai;
+                    const altNilai = alt.nilai ?? 0;
+                    const diff = nilaiAkhirNum - altNilai;
                     return (
                       <div
                         key={alt.id}
@@ -445,9 +453,9 @@ export default async function HasilPage({
                           <div className="text-[11px] text-gray-500">
                             Estimasi min: {" "}
                             <span className="font-semibold text-gray-800">
-                              {alt.nilai.toFixed(1)}
-                            </span>{" "}
-                            • {alt.kelompok.nama}
+                              {altNilai.toFixed(1)}
+                            </span>
+                            {alt.kelompok?.nama ? ` • ${alt.kelompok.nama}` : ""}
                           </div>
                         </div>
                         <div className="text-right text-[11px] text-gray-500">
