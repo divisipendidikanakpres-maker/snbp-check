@@ -477,8 +477,10 @@ export default function Home() {
   }
 
   useEffect(() => {
+    // Reset immediately to avoid stale empty list flash
+    setUniversitasList([]);
+    setUniLoadingMore(true);
     const t = setTimeout(() => {
-      setUniLoadingMore(true);
       fetchUniPage(1, uniQuery)
         .then((res) => {
           setUniversitasList(res.data);
@@ -524,10 +526,10 @@ export default function Home() {
   }
 
   useEffect(() => {
+    if (!selectedUniversitas) return;
+    setProdiList([]);
+    setProdiLoadingMore(true);
     const t = setTimeout(() => {
-      // prodiQuery changed, reload first page for currently selected university
-      if (!selectedUniversitas) return;
-      setProdiLoadingMore(true);
       fetchProdiPage(1, selectedUniversitas.id, prodiQuery)
         .then((res) => {
           setProdiList(res.data);
@@ -1221,9 +1223,11 @@ export default function Home() {
                           placeholder="Cari universitas..."
                           onInput={(e: any) => setUniQuery(e.target.value ?? "")}
                         />
-                        <ComboboxEmpty>
-                          Universitas tidak ditemukan.
-                        </ComboboxEmpty>
+                        {!uniLoadingMore && (
+                          <ComboboxEmpty>
+                            Universitas tidak ditemukan.
+                          </ComboboxEmpty>
+                        )}
                         <ComboboxList onScroll={handleUniScroll}>
                           {ptnItems.map((item) => (
                             <ComboboxItem key={item.value} value={item}>
@@ -1266,9 +1270,11 @@ export default function Home() {
                           placeholder="Cari program studi..."
                           onInput={(e: any) => setProdiQuery(e.target.value ?? "")}
                         />
-                        <ComboboxEmpty>
-                          Program studi tidak ditemukan.
-                        </ComboboxEmpty>
+                        {!prodiLoadingMore && (
+                          <ComboboxEmpty>
+                            Program studi tidak ditemukan.
+                          </ComboboxEmpty>
+                        )}
                         <ComboboxList onScroll={handleProdiScroll}>
                           {jurusanItems.map((item) => (
                             <ComboboxItem key={item.value} value={item}>
