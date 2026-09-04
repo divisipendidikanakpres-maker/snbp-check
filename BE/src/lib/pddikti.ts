@@ -1,12 +1,12 @@
 const PDDIKTI_BASE = 'https://pddikti.kemdiktisaintek.go.id/api';
 
 const DEFAULT_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Accept': 'application/json',
   'Referer': 'https://pddikti.kemdiktisaintek.go.id/',
 };
 
-const TIMEOUT_MS = 7000;
+const TIMEOUT_MS = 8000;
 
 async function pddiktiFetch(path: string): Promise<any | null> {
   try {
@@ -14,11 +14,15 @@ async function pddiktiFetch(path: string): Promise<any | null> {
       headers: DEFAULT_HEADERS,
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error(`[PDDIKTI] Fetch ${path} failed with status:`, res.status);
+      return null;
+    }
     const json: any = await res.json();
     if (json?.status === 'success' && json?.data) return json.data;
     return null;
-  } catch {
+  } catch (err: any) {
+    console.error(`[PDDIKTI] Fetch ${path} error:`, err?.message || err);
     return null;
   }
 }

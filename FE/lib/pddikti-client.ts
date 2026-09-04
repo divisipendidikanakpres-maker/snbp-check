@@ -1,9 +1,9 @@
 /**
- * Client-side PDDikti API helper via Backend Proxy.
- * Calls /api/pddikti/* on backend -> avoids CORS issues entirely!
+ * Client-side PDDikti API helper via standard Backend Endpoints (/api/universitas & /api/prodi).
+ * No special new route needed -> zero 404 errors!
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api-snbp.goprestasi.com/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://snbp-check.vercel.app/api';
 
 async function apiFetch(path: string): Promise<any | null> {
   try {
@@ -52,19 +52,19 @@ export interface PddiktiProdi {
 }
 
 /**
- * Fetch initial list of universities (500 merged PTN/PTS).
+ * Fetch initial list of universities from standard backend endpoint.
  */
 export async function fetchInitialUniversitas(): Promise<PddiktiPT[]> {
-  const json = await apiFetch('/pddikti/universitas?limit=50');
+  const json = await apiFetch('/universitas?limit=50');
   return json?.data ?? [];
 }
 
 /**
- * Search universities by keyword.
+ * Search universities by keyword from standard backend endpoint.
  */
 export async function searchUniversitas(query: string): Promise<PddiktiPT[]> {
   if (!query.trim()) return [];
-  const json = await apiFetch(`/pddikti/universitas?search=${encodeURIComponent(query.trim())}&limit=50`);
+  const json = await apiFetch(`/universitas?search=${encodeURIComponent(query.trim())}&limit=50`);
   return json?.data ?? [];
 }
 
@@ -72,7 +72,7 @@ export async function searchUniversitas(query: string): Promise<PddiktiPT[]> {
  * Get prodi list for a given university ID.
  */
 export async function fetchProdiByPT(ptId: string): Promise<PddiktiProdi[]> {
-  const json = await apiFetch(`/pddikti/prodi?ptId=${encodeURIComponent(ptId)}&limit=100`);
+  const json = await apiFetch(`/prodi?universitasId=${encodeURIComponent(ptId)}&limit=100`);
   return json?.data ?? [];
 }
 
@@ -81,11 +81,10 @@ export async function fetchProdiByPT(ptId: string): Promise<PddiktiProdi[]> {
  */
 export async function searchProdiNational(query: string): Promise<PddiktiProdi[]> {
   if (!query.trim()) return [];
-  const json = await apiFetch(`/pddikti/prodi?search=${encodeURIComponent(query.trim())}&limit=50`);
+  const json = await apiFetch(`/prodi?search=${encodeURIComponent(query.trim())}&limit=50`);
   return json?.data ?? [];
 }
 
-/** Utility mapping functions for backward compatibility */
 export function mapPTtoUniversitas(pt: PddiktiPT) {
   return pt;
 }

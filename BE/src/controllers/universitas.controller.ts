@@ -39,7 +39,7 @@ export async function listUniversitas(req: Request, res: Response) {
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 20;
 
-  // — PDDikti: search by explicit query —
+  // — 1. PDDikti: query explicitly requested —
   if (search) {
     try {
       const pddiktiResults = await searchPT(search);
@@ -60,35 +60,19 @@ export async function listUniversitas(req: Request, res: Response) {
         }));
         return res.status(200).json({ data: transformed, total, page, limit });
       }
-    } catch {
-      // Fallback to local database if PDDikti fetch fails
+    } catch (e) {
+      console.error('[listUniversitas] PDDikti search failed:', e);
     }
   }
 
-  // — PDDikti: no search → load broad list from PDDikti with multiple keyword queries —
+  // — 2. PDDikti: no search query → load initial list from PDDikti —
   if (!search) {
     try {
-      const BROAD_QUERIES = ['universitas', 'institut', 'politeknik', 'sekolah tinggi', 'akademi'];
-      const results = await Promise.allSettled(BROAD_QUERIES.map((q) => searchPT(q)));
-
-      // Merge & de-duplicate by id
-      const seen = new Set<string>();
-      const merged: any[] = [];
-      for (const r of results) {
-        if (r.status === 'fulfilled' && Array.isArray(r.value)) {
-          for (const pt of r.value) {
-            if (!seen.has(pt.id)) {
-              seen.add(pt.id);
-              merged.push(pt);
-            }
-          }
-        }
-      }
-
-      if (merged.length > 0) {
-        const total = merged.length;
+      const pddiktiInitial = await searchPT('universitas');
+      if (pddiktiInitial && pddiktiInitial.length > 0) {
+        const total = pddiktiInitial.length;
         const startIndex = (page - 1) * limit;
-        const paginated = merged.slice(startIndex, startIndex + limit);
+        const paginated = pddiktiInitial.slice(startIndex, startIndex + limit);
         const transformed = paginated.map((pt) => ({
           id: pt.id,
           namaUniversitas: pt.nama,
@@ -102,12 +86,12 @@ export async function listUniversitas(req: Request, res: Response) {
         }));
         return res.status(200).json({ data: transformed, total, page, limit });
       }
-    } catch {
-      // Fallback to local database
+    } catch (e) {
+      console.error('[listUniversitas] PDDikti initial fetch failed:', e);
     }
   }
 
-  // — Fallback: local DB —
+  // — 3. Fallback: local Prisma DB —
   let orderBy: any = { createdAt: 'desc' };
   if (sort === 'ranking_tertinggi') {
     orderBy = { ranking: 'asc' };
@@ -126,15 +110,15 @@ export async function listUniversitas(req: Request, res: Response) {
     : undefined;
 
   const skip = (page - 1) * limit;
-  const total = await prisma.universitas.count({ where });
+  const total = await prisma.sekolah ? await prisma.universitas.count({ where }).catch(() => 0) : 0;
   const universitas = await prisma.universitas.findMany({
     where,
     orderBy,
     skip,
     take: limit,
-  });
+  }).catch(() => []);
   const withStats = await withProdiStats(universitas);
-  return res.status(200).json({ data: withStats, total, page, limit });
+  return res.status(200).json({ data: withStats, total: total || universitas.length, page, limit });
 }
 
 export async function createUniversitas(req: Request, res: Response) {
