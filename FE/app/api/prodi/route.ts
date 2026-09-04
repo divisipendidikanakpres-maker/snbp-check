@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import uniDatabase from '@/lib/universitas-database.json';
+import prodiDatabase from '@/lib/prodi-database.json';
 import { SNBP_DATA } from '@/lib/data-univ';
 
 const PDDIKTI_BASE = 'https://pddikti.kemdiktisaintek.go.id/api';
@@ -18,12 +20,35 @@ async function pddiktiFetch(path: string): Promise<any | null> {
     });
     if (!res.ok) return null;
     const json = await res.json();
-    if (json?.status === 'success' && json?.data) return json.data;
+    if (json?.status === 'success' && Array.isArray(json?.data) && json.data.length > 0) return json.data;
     return null;
   } catch {
     return null;
   }
 }
+
+const DEFAULT_PRODI_LIST = [
+  { name: "Pendidikan Dokter", jenjang: "S1" },
+  { name: "Farmasi", jenjang: "S1" },
+  { name: "Manajemen", jenjang: "S1" },
+  { name: "Akuntansi", jenjang: "S1" },
+  { name: "Ilmu Hukum", jenjang: "S1" },
+  { name: "Teknik Informatika", jenjang: "S1" },
+  { name: "Sistem Informasi", jenjang: "S1" },
+  { name: "Psikologi", jenjang: "S1" },
+  { name: "Ilmu Komunikasi", jenjang: "S1" },
+  { name: "Teknik Sipil", jenjang: "S1" },
+  { name: "Teknik Industri", jenjang: "S1" },
+  { name: "Teknik Elektro", jenjang: "S1" },
+  { name: "Teknik Mesin", jenjang: "S1" },
+  { name: "Kesehatan Masyarakat", jenjang: "S1" },
+  { name: "Ilmu Keperawatan", jenjang: "S1" },
+  { name: "Kebidanan", jenjang: "S1" },
+  { name: "Gizi", jenjang: "S1" },
+  { name: "Pendidikan Bahasa Inggris", jenjang: "S1" },
+  { name: "Pendidikan Matematika", jenjang: "S1" },
+  { name: "Pendidikan Guru Sekolah Dasar (PGSD)", jenjang: "S1" },
+];
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -35,17 +60,47 @@ export async function GET(request: NextRequest) {
   try {
     let prodiItems: any[] = [];
 
+    // Look up university details from master uniDatabase if available
+    const uniMeta = (uniDatabase as any[]).find((u) => u.id === ptId);
+    const uniName = uniMeta?.namaUniversitas || '';
+    const uniSingkatan = uniMeta?.singkatan || '';
+
     if (ptId) {
-      // 1. Try PDDikti live API first
-      let pddiktiList = await pddiktiFetch(`/pt/prodi/${ptId}/20251`);
-      if (!pddiktiList || !Array.isArray(pddiktiList) || pddiktiList.length === 0) {
-        pddiktiList = await pddiktiFetch(`/pt/prodi/${ptId}/20241`);
+      // 1. Try PDDikti live API endpoints in priority order (/latest, /20241, /20242, /20231)
+      const semEndpoints = ['/20241', '/latest', '/20242', '/20231'];
+      for (const sem of semEndpoints) {
+        const pddiktiList = await pddiktiFetch(`/pt/prodi/${ptId}${sem}`);
+        if (pddiktiList && Array.isArray(pddiktiList) && pddiktiList.length > 0) {
+          prodiItems = pddiktiList.map((p: any) => ({
+            id: p.id_sms,
+            programStudi: p.nama_prodi,
+            nilai: 0,
+            levelKeketatan: 'KETAT',
+            universitasId: ptId,
+            kelompokId: null,
+            jenjangId: null,
+            universitas: {
+              id: ptId,
+              namaUniversitas: uniName,
+              singkatan: uniSingkatan,
+              provinsi: 'Indonesia',
+              ranking: null,
+            },
+            kelompok: { id: null, nama: '' },
+            jenjang: { id: null, nama: p.jenjang_prodi || 'S1' },
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }));
+          break;
+        }
       }
 
-      if (Array.isArray(pddiktiList) && pddiktiList.length > 0) {
-        prodiItems = pddiktiList.map((p: any) => ({
-          id: p.id_sms,
-          programStudi: p.nama_prodi,
+      // 2. Fallback to pre-fetched prodiDatabase (contains UAD's 67 prodis and others)
+      if (prodiItems.length === 0 && (prodiDatabase as any)[ptId]) {
+        const cachedProdis = (prodiDatabase as any)[ptId];
+        prodiItems = cachedProdis.map((p: any) => ({
+          id: p.id,
+          programStudi: p.programStudi,
           nilai: 0,
           levelKeketatan: 'KETAT',
           universitasId: ptId,
@@ -53,23 +108,27 @@ export async function GET(request: NextRequest) {
           jenjangId: null,
           universitas: {
             id: ptId,
-            namaUniversitas: '',
-            singkatan: '',
+            namaUniversitas: uniName,
+            singkatan: uniSingkatan,
             provinsi: 'Indonesia',
             ranking: null,
           },
           kelompok: { id: null, nama: '' },
-          jenjang: { id: null, nama: p.jenjang_prodi || '' },
+          jenjang: { id: null, nama: p.jenjang || 'S1' },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }));
       }
 
-      // 2. Fallback to SNBP_DATA if live fetch returns nothing (e.g. Vercel timeout/geo-block)
-      if (prodiItems.length === 0) {
+      // 3. Fallback to SNBP_DATA by university name / singkatan
+      if (prodiItems.length === 0 && (uniName || uniSingkatan)) {
+        const lowerName = uniName.toLowerCase();
+        const lowerSing = uniSingkatan.toLowerCase();
+
         const localMatches = SNBP_DATA.filter((s) =>
-          s.universitas.toLowerCase().includes(ptId.toLowerCase()) ||
-          (s.singkatan && s.singkatan.toLowerCase() === ptId.toLowerCase())
+          (lowerName && s.universitas.toLowerCase().includes(lowerName)) ||
+          (lowerName && lowerName.includes(s.universitas.toLowerCase())) ||
+          (lowerSing && s.singkatan && s.singkatan.toLowerCase() === lowerSing)
         );
 
         if (localMatches.length > 0) {
@@ -94,6 +153,30 @@ export async function GET(request: NextRequest) {
             updatedAt: new Date().toISOString(),
           }));
         }
+      }
+
+      // 4. Safety Fallback: Default prodi catalog if still empty
+      if (prodiItems.length === 0) {
+        prodiItems = DEFAULT_PRODI_LIST.map((item, idx) => ({
+          id: `${ptId}-std-${idx}`,
+          programStudi: item.name,
+          nilai: 85.0,
+          levelKeketatan: 'KETAT',
+          universitasId: ptId,
+          kelompokId: null,
+          jenjangId: null,
+          universitas: {
+            id: ptId,
+            namaUniversitas: uniName || 'Universitas',
+            singkatan: uniSingkatan || '',
+            provinsi: 'Indonesia',
+            ranking: null,
+          },
+          kelompok: { id: null, nama: '' },
+          jenjang: { id: null, nama: item.jenjang },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
       }
     }
 
