@@ -48,4 +48,6 @@ export const SEKOLAH_DATA: SekolahItem[] = [
   { npsn: "69904742", namaSekolah: "SMK NEGERI 12 KOTA BEKASI", akreditasi: "A", kecamatan: "Kec. Pondokgede" },
   { npsn: "20271658", namaSekolah: "SMKN 8 KOTA BEKASI", akreditasi: "A", kecamatan: "Kec. Rawalumbu" },
   { npsn: "20231719", namaSekolah: "SMAN 13 BEKASI", akreditasi: "A", kecamatan: "Kec. Rawalumbu" },
+  { npsn: "20277028", namaSekolah: "MAN 1 KOTA BEKASI", akreditasi: "A", kecamatan: "Kec. Bekasi Utara", bentuk: "MAN", status: "N", kota: "Kota Bekasi", provinsi: "Jawa Barat" },
+  { npsn: "20277029", namaSekolah: "MAN 2 KOTA BEKASI", akreditasi: "A", kecamatan: "Kec. Rawalumbu", bentuk: "MAN", status: "N", kota: "Kota Bekasi", provinsi: "Jawa Barat" },
 ];

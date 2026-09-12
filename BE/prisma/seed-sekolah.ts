@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import manSchoolsData from '../src/data/sekolah-man-database.json';
 
 const prisma = new PrismaClient();
 
@@ -68,7 +69,28 @@ async function main() {
     }
   }
 
-  console.log(`\n✅ ${SEKOLAH_DATA.length} sekolah processed successfully`);
+  // Seed MAN schools from sekolah-man-database.json
+  try {
+    console.log(`\nSeeding ${manSchoolsData.length} MAN schools...`);
+    for (const man of manSchoolsData) {
+      const existing = await prisma.sekolah.findFirst({
+        where: { namaSekolah: man.namaSekolah },
+      });
+      if (!existing) {
+        await prisma.sekolah.create({
+          data: {
+            namaSekolah: man.namaSekolah,
+            akreditasi: man.akreditasi || 'A',
+          },
+        });
+        console.log(`✓ ${man.namaSekolah} (${man.akreditasi})`);
+      }
+    }
+  } catch (e) {
+    console.warn('Warning: Could not seed MAN database:', e);
+  }
+
+  console.log(`\n✅ Sekolah and MAN data processed successfully`);
 }
 
 main()
