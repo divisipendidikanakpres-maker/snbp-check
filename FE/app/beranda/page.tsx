@@ -146,20 +146,26 @@ export default function Home() {
 
 
 
-  // Load sekolah saat kota dipilih (cascade) atau saat schoolQuery berubah
+  // Load sekolah saat provinsi/kota dipilih (cascade) atau saat schoolQuery berubah
   useEffect(() => {
     // Strip prefix seperti "Kota ", "Kab. " dari nama kota sebelum dikirim ke API
     const stripPrefix = (s: string) =>
       s.replace(/^(Kota|Kab\.|Kabupaten|Prov\.)\s*/i, '').trim();
 
-    const query = schoolQuery
-      ? schoolQuery  // user mengetik manual di search box
-      : selectedKota?.value
-        ? stripPrefix(selectedKota.value)  // gunakan nama kota yang sudah di-strip
-        : undefined;
+    const provLabel = selectedProvinsi?.label || selectedProvinsi?.value;
+    const kotaLabel = selectedKota?.label || selectedKota?.value;
+
+    const provParam = provLabel ? stripPrefix(provLabel) : undefined;
+    const kotaParam = kotaLabel ? stripPrefix(kotaLabel) : undefined;
 
     setSchoolLoadingMore(true);
-    listSekolah(query, 1, schoolLimit)
+    listSekolah(
+      schoolQuery || undefined,
+      1,
+      schoolLimit,
+      provParam,
+      kotaParam
+    )
       .then((res) => {
         setSekolahList(res.data);
         setSchoolTotal(res.total);
@@ -167,7 +173,7 @@ export default function Home() {
       })
       .catch(() => setSekolahList([]))
       .finally(() => setSchoolLoadingMore(false));
-  }, [selectedKota, schoolQuery]);
+  }, [selectedProvinsi, selectedKota, schoolQuery]);
 
   // reset prodi list when selected university changes
   useEffect(() => {
@@ -425,17 +431,16 @@ export default function Home() {
   // --- helper functions for infinite remote loading ---
   async function fetchSchoolPage(pageNum: number, q?: string) {
     try {
-      // Strip prefix jika perlu
       const stripPrefix = (s: string) =>
         s.replace(/^(Kota|Kab\.|Kabupaten|Prov\.)\s*/i, '').trim();
 
-      const query = q
-        ? q  // jika ada query manual, gunakan langsung
-        : selectedKota?.value
-          ? stripPrefix(selectedKota.value)
-          : undefined;
+      const provLabel = selectedProvinsi?.label || selectedProvinsi?.value;
+      const kotaLabel = selectedKota?.label || selectedKota?.value;
 
-      const res = await listSekolah(query, pageNum, schoolLimit);
+      const provParam = provLabel ? stripPrefix(provLabel) : undefined;
+      const kotaParam = kotaLabel ? stripPrefix(kotaLabel) : undefined;
+
+      const res = await listSekolah(q || undefined, pageNum, schoolLimit, provParam, kotaParam);
       return res;
     } catch (e) {
       return { data: [], total: 0, page: pageNum, limit: schoolLimit } as any;

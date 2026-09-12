@@ -45,24 +45,46 @@ interface SekolahItem {
   akreditasi: string;
 }
 
-function searchManDatabase(query: string): SekolahItem[] {
-  if (!query) return manSchoolsData as SekolahItem[];
-  const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
-  return (manSchoolsData as SekolahItem[]).filter((school) => {
-    const text = `${school.namaSekolah} ${school.kota} ${school.provinsi} ${school.npsn}`.toLowerCase();
-    return tokens.every((token) => text.includes(token));
-  });
+function searchManDatabase(query?: string, provinsi?: string, kota?: string): SekolahItem[] {
+  let list = manSchoolsData as SekolahItem[];
+
+  if (provinsi) {
+    const provLower = provinsi.toLowerCase();
+    list = list.filter((s) => s.provinsi.toLowerCase().includes(provLower) || provLower.includes(s.provinsi.toLowerCase()));
+  }
+
+  if (kota) {
+    const kotaLower = kota.toLowerCase();
+    list = list.filter((s) => {
+      const sKota = s.kota.toLowerCase();
+      return sKota.includes(kotaLower) || kotaLower.includes(sKota);
+    });
+  }
+
+  if (query) {
+    const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+    list = list.filter((school) => {
+      const text = `${school.namaSekolah} ${school.kota} ${school.provinsi} ${school.npsn}`.toLowerCase();
+      return tokens.every((token) => text.includes(token));
+    });
+  }
+
+  return list;
 }
 
 export async function listSekolah(req: Request, res: Response) {
   const rawSearch = String(req.query.search ?? '').trim();
+  const rawProvinsi = String(req.query.provinsi ?? '').trim();
+  const rawKota = String(req.query.kota ?? '').trim();
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit || req.query.perPage) || 20;
 
-  // Clean the search query: remove prefixes like "Kota", "Kab.", "Kabupaten", "Prov."
-  let cleanSearch = rawSearch
-    .replace(/^(Kota|Kab\.|Kabupaten|Prov\.)\s*/gi, '')
-    .trim();
+  const stripPrefix = (s: string) =>
+    s.replace(/^(Kota|Kab\.|Kabupaten|Prov\.)\s*/gi, '').trim();
+
+  const cleanSearch = stripPrefix(rawSearch);
+  const cleanProvinsi = stripPrefix(rawProvinsi);
+  const cleanKota = stripPrefix(rawKota);
 
   // 1. Check if the user is explicitly searching for MAN / Madrasah
   const isExplicitManQuery =
@@ -70,7 +92,19 @@ export async function listSekolah(req: Request, res: Response) {
     /\b(man|madrasah)\b/i.test(cleanSearch);
 
   if (isExplicitManQuery) {
-    const matchedMan = searchManDatabase(cleanSearch);
+    // Search MAN with kota & provinsi filter first
+    let matchedMan = searchManDatabase(cleanSearch, cleanProvinsi, cleanKota);
+
+    // If no match in specific kota, fallback to province
+    if (matchedMan.length === 0 && cleanKota && cleanProvinsi) {
+      matchedMan = searchManDatabase(cleanSearch, cleanProvinsi);
+    }
+
+    // If still no match, search nationwide
+    if (matchedMan.length === 0) {
+      matchedMan = searchManDatabase(cleanSearch);
+    }
+
     if (matchedMan.length > 0) {
       const startIndex = (page - 1) * limit;
       const paginated = matchedMan.slice(startIndex, startIndex + limit);
@@ -85,17 +119,18 @@ export async function listSekolah(req: Request, res: Response) {
 
   // 2. Query external Dapodik API (SMA / SMK)
   let apiResult: { data: any[]; total: number } | null = null;
+  const apiQuery = cleanSearch || cleanKota || cleanProvinsi || '';
 
-  if (cleanSearch) {
-    // 1. Try with the full cleaned query
+  if (apiQuery) {
+    // 1. Try with the query
     try {
-      apiResult = await fetchFromSchoolApi(cleanSearch, page, limit);
+      apiResult = await fetchFromSchoolApi(apiQuery, page, limit);
     } catch (e) {
       // ignore
     }
 
     // 2. Special case for Jakarta
-    if (!apiResult && /jakarta/i.test(cleanSearch)) {
+    if (!apiResult && /jakarta/i.test(apiQuery)) {
       try {
         apiResult = await fetchFromSchoolApi('Jakarta', page, limit);
       } catch (e) {
@@ -104,8 +139,8 @@ export async function listSekolah(req: Request, res: Response) {
     }
 
     // 3. Try parts if multiple words
-    if (!apiResult && cleanSearch.includes(' ')) {
-      const parts = cleanSearch.split(/\s+/).filter(Boolean);
+    if (!apiResult && apiQuery.includes(' ')) {
+      const parts = apiQuery.split(/\s+/).filter(Boolean);
       try {
         apiResult = await fetchFromSchoolApi(parts[0], page, limit);
       } catch (e) {
@@ -129,7 +164,7 @@ export async function listSekolah(req: Request, res: Response) {
   }
 
   if (apiResult && apiResult.data.length > 0) {
-    const transformed: SekolahItem[] = apiResult.data.map((item: any) => ({
+    let transformed: SekolahItem[] = apiResult.data.map((item: any) => ({
       id: item.npsn || item.id,
       npsn: item.npsn || '',
       namaSekolah: (item.sekolah || '').trim(),
@@ -141,20 +176,37 @@ export async function listSekolah(req: Request, res: Response) {
       akreditasi: item.status === 'N' ? 'A' : 'B',
     }));
 
+    // Filter by provinsi & kota if provided
+    if (cleanProvinsi) {
+      const filteredByProv = transformed.filter(
+        (s) => !s.provinsi || s.provinsi.toLowerCase().includes(cleanProvinsi.toLowerCase())
+      );
+      if (filteredByProv.length > 0) transformed = filteredByProv;
+    }
+    if (cleanKota) {
+      const filteredByKota = transformed.filter(
+        (s) => !s.kota || s.kota.toLowerCase().includes(cleanKota.toLowerCase())
+      );
+      if (filteredByKota.length > 0) transformed = filteredByKota;
+    }
+
     // If searching by city / location, also append matching MAN schools from that city
-    if (cleanSearch && !isExplicitManQuery) {
-      const matchingMan = searchManDatabase(cleanSearch);
+    if (!isExplicitManQuery) {
+      const matchingMan = searchManDatabase(cleanSearch, cleanProvinsi, cleanKota);
       if (matchingMan.length > 0) {
         const existingNpsn = new Set(transformed.map((s) => s.npsn));
-        const combined = [...transformed];
-        for (const man of matchingMan) {
-          if (!existingNpsn.has(man.npsn)) {
-            combined.push(man);
-            existingNpsn.add(man.npsn);
+        const combined = [...matchingMan, ...transformed];
+        const uniqueCombined: SekolahItem[] = [];
+        const seen = new Set<string>();
+        for (const s of combined) {
+          const key = s.npsn || s.id || s.namaSekolah;
+          if (!seen.has(key)) {
+            seen.add(key);
+            uniqueCombined.push(s);
           }
         }
         return res.status(200).json({
-          data: combined.slice(0, limit),
+          data: uniqueCombined.slice(0, limit),
           total: apiResult.total + matchingMan.length,
           page,
           limit,
@@ -214,8 +266,8 @@ export async function listSekolah(req: Request, res: Response) {
     });
   }
 
-  // Final fallback: query directly from MAN database
-  const fallbackMan = searchManDatabase(cleanSearch);
+  // Final fallback: query directly from MAN database with provinsi and kota
+  const fallbackMan = searchManDatabase(cleanSearch, cleanProvinsi, cleanKota);
   const paginatedFallback = fallbackMan.slice(skip, skip + limit);
 
   return res.status(200).json({

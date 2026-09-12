@@ -29,11 +29,13 @@ export interface PaginatedResponse<T> {
 export function useSekolah() {
   const { get, post, put, del } = useApi();
 
-  async function list(search?: string, page?: number, limit?: number) {
+  async function list(search?: string, page?: number, limit?: number, provinsi?: string, kota?: string) {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (page) params.set('page', page.toString());
     if (limit) params.set('limit', limit.toString());
+    if (provinsi) params.set('provinsi', provinsi);
+    if (kota) params.set('kota', kota);
     const q = params.toString() ? `?${params.toString()}` : "";
     return get<PaginatedResponse<Sekolah>>(`/sekolah${q}`);
   }
